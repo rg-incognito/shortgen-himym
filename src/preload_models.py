@@ -2,7 +2,7 @@
 import os
 
 whisper_model = os.environ.get('WHISPER_MODEL', 'small')
-hf_token      = os.environ.get('HF_TOKEN', '').strip()
+hf_token      = os.environ.get('HF_TOKEN', '').strip().lstrip('﻿')
 
 print(f'Pre-downloading whisper-{whisper_model}...')
 from faster_whisper import WhisperModel
