@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+token.txt
+tokens.txt
+yt_token.json
+*_secret.json
+oauth_client.json
+parental-app-*.json
+client_secret_*.json
+create_himym_drive.py
