@@ -84,7 +84,7 @@ Rules:
 - pinned_comment: funny/relatable observation + engagement question + 1 emoji + 👇"""
 
 
-def generate_yt_metadata(story, episode_name, api_key, retries=3):
+def generate_yt_metadata(story, episode_name, api_key, retries=5):
     import re
     api_key = api_key.strip()
     m = re.search(r'[Ss](\d+)[Ee](\d+)', episode_name)
@@ -116,7 +116,7 @@ def generate_yt_metadata(story, episode_name, api_key, retries=3):
         except Exception as e:
             print(f"  YT metadata attempt {attempt} failed: {e}")
             if attempt < retries:
-                time.sleep(10)
+                time.sleep(30)
     return None
 
 

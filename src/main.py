@@ -100,23 +100,31 @@ def main():
         drive_file_id = uploaded[0][1] if uploaded else None
 
         # Upload to YouTube as a scheduled post (requires YT_TOKEN_JSON secret)
-        if yt_meta:
-            try:
-                from youtube_client import upload_scheduled
-                publish_at = tracker.get_next_publish_slot()
-                print(f"[5b] Scheduling on YouTube → {publish_at}...")
-                yt_video_id = upload_scheduled(
-                    short_path,
-                    yt_meta['title'],
-                    yt_meta['description'],
-                    yt_meta['tags'],
-                    publish_at,
-                )
-                print(f"      https://youtu.be/{yt_video_id}")
-                tracker.update_yt_url(episode_name, current_run,
-                                      story['storyline_title'], yt_video_id, publish_at)
-            except Exception as e:
-                print(f"      YouTube upload skipped: {e}")
+        if not yt_meta:
+            ep_upper = episode_name.replace('_', ' ').upper()
+            yt_meta = {
+                'title':          f"{story['storyline_title'].replace('_', ' ').title()} | HIMYM",
+                'description':    f"{story['storyline_summary']}\n\nHow I Met Your Mother | {ep_upper}",
+                'tags':           'HIMYM, How I Met Your Mother, funny moments, sitcom, CBS',
+                'pinned_comment': '',
+            }
+            print("      YT metadata fallback used (Gemini unavailable)")
+        try:
+            from youtube_client import upload_scheduled
+            publish_at = tracker.get_next_publish_slot()
+            print(f"[5b] Scheduling on YouTube -> {publish_at}...")
+            yt_video_id = upload_scheduled(
+                short_path,
+                yt_meta['title'],
+                yt_meta['description'],
+                yt_meta['tags'],
+                publish_at,
+            )
+            print(f"      https://youtu.be/{yt_video_id}")
+            tracker.update_yt_url(episode_name, current_run,
+                                  story['storyline_title'], yt_video_id, publish_at)
+        except Exception as e:
+            print(f"      YouTube upload skipped: {e}")
 
         # Move the uploaded short to shorts/used/
         if drive_file_id:
