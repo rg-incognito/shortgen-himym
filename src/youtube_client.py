@@ -12,10 +12,11 @@ _TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', 'yt_token.json')
 
 
 def _build_svc():
-    """Load credentials from yt_token.json (written from YT_TOKEN_JSON secret at runtime)."""
     if not os.path.exists(_TOKEN_FILE):
         raise FileNotFoundError("yt_token.json not found — set YT_TOKEN_JSON secret")
-    creds = Credentials.from_authorized_user_file(_TOKEN_FILE, _SCOPES)
+    raw = open(_TOKEN_FILE, encoding='utf-8-sig').read()
+    info = json.loads(raw)
+    creds = Credentials.from_authorized_user_info(info, _SCOPES)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
         with open(_TOKEN_FILE, 'w') as f:
