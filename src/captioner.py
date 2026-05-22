@@ -8,6 +8,7 @@ past the 4th slot the entire block replaces itself with the next 4 words.
 Timings come from Whisper word-level timestamps, remapped from episode time
 into the merged video's timeline using the story clip list.
 """
+import os
 import subprocess
 import tempfile
 from pathlib import Path
