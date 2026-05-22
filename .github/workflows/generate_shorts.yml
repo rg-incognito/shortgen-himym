@@ -96,7 +96,7 @@ jobs:
           SPREADSHEET_ID:              ${{ secrets.HIMYM_SPREADSHEET_ID }}
           VIDEO_FILE_ID:               ${{ github.event.inputs.video_file_id }}
           EPISODE_NAME:                ${{ github.event.inputs.episode_name }}
-          WHISPER_MODEL:               ${{ github.event.inputs.whisper_model }}
+          WHISPER_MODEL:               ${{ github.event.inputs.whisper_model || 'small' }}
           VIDEOS_FOLDER_ID:  ${{ secrets.HIMYM_VIDEOS_FOLDER_ID }}
           SHORTS_FOLDER_ID:  ${{ secrets.HIMYM_SHORTS_FOLDER_ID }}
           ARCHIVE_FOLDER_ID: ${{ secrets.HIMYM_ARCHIVE_FOLDER_ID }}
