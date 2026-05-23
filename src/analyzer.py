@@ -7,14 +7,14 @@ _GEMINI_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-fl
 
 _PROMPT = """You are a viral short-form video editor working with How I Met Your Mother (US sitcom, 2005-2014).
 
-Your task: Create a ~45-second reel that tells ONE complete storyline in tight, punchy cuts — like a TikTok story recap.
+Your task: Create a ~30-second reel that tells ONE complete storyline in tight, punchy cuts — like a TikTok story recap.
 
 OUTPUT STRUCTURE (strictly in this order):
-1. HOOK (first clip, 4-8 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. This must grab attention in the first second. E.g. the punchline reaction, the embarrassing confession, Barney's big reveal, Ted's disastrous moment.
-2. CONTEXT clips (3-5 clips, 3-8 sec each) — the minimum lines needed to understand the story. Only the KEY line or reaction from each scene beat. Cut everything else.
-3. PAYOFF (last clip, 4-8 sec) — the final punchline, resolution, or biggest laugh.
+1. HOOK (first clip, 3-5 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. CRITICAL: the very first frame must start MID-ACTION — the character must already be mid-sentence, mid-reaction, or mid-punchline. NEVER open on someone walking into MacLaren's, sitting down, looking around, or any establishing shot. Start on Barney's face already in frame mid-reveal, Marshall's reaction already happening, Ted already mid-disaster.
+2. CONTEXT clips (2-4 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
+3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, or biggest laugh.
 
-TOTAL target: 35-55 seconds across all clips combined.
+TOTAL target: 25-35 seconds across all clips combined.
 
 Great storylines to look for:
 1. Barney's elaborate scheme or play from the Playbook that backfires
@@ -40,18 +40,19 @@ Return ONLY a valid JSON object — no markdown, no explanation:
       "start_seconds": 87.0,
       "end_seconds": 92.0,
       "label": "hook",
-      "description": "Marshall's face when he realises Barney used the Scuba Diver play on Robin"
+      "description": "Marshall's face already mid-shock when he realises Barney used the Scuba Diver play — starts on his expression in frame"
     }}
   ],
   "score": 9
 }}
 
 Rules:
-- 4 to 8 clips total
-- FIRST clip = hook (most viral moment, any timestamp)
+- 4 to 6 clips total
+- FIRST clip = hook (most viral moment, any timestamp) — first frame must be mid-action, never an establishing shot
 - LAST clip = payoff/punchline/resolution
-- Each clip: 3-15 seconds — just the KEY line or reaction, nothing more
-- Total combined duration: 45-60 seconds
+- Hook clip: 3-5 seconds only
+- Context clips: 3-6 seconds each — just the KEY line or reaction, nothing more
+- Total combined duration: 25-35 seconds
 - Clips (except the hook) should be in rough CHRONOLOGICAL ORDER
 - Clips must NOT overlap each other or the previously-used segments
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
