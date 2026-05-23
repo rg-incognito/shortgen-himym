@@ -35,6 +35,7 @@ Return ONLY a valid JSON object — no markdown, no explanation:
 {{
   "storyline_title": "barney_playbook_backfires",
   "storyline_summary": "Barney's latest play fails spectacularly, the gang finds out, Marshall delivers the slap",
+  "series_tag": "barneys_schemes",
   "clips": [
     {{
       "start_seconds": 87.0,
@@ -58,28 +59,39 @@ Rules:
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
 - Pick moments with a clear spoken punchline or strong visual reaction
 - Score 1-10 for viral potential as a compiled reel (10 = highest)
-- storyline_title: snake_case, max 40 chars"""
+- storyline_title: snake_case, max 40 chars
+- series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens"""
 
 
 _YT_PROMPT = """You are a YouTube content strategist for a How I Met Your Mother clips channel called "Legen-dary Clips".
 
 Generate YouTube metadata for a short-form vertical reel (under 60 seconds).
 
-Episode : {episode_str}
+Episode  : {episode_str}
 Storyline: {storyline}
 Summary  : {summary}
+Series   : {series_tag}
 Score    : {score}/10
+
+The series_tag maps to these display names for the title:
+barneys_schemes → "Barney's Schemes"
+teds_disasters → "Ted's Disasters"
+marshall_and_lily → "Marshall & Lily"
+robins_quirks → "Robin Being Robin"
+slap_bet → "Slap Bet"
+legendary_moments → "Legendary Moments"
+gang_at_maclarens → "The Gang"
 
 Return ONLY valid JSON, no markdown:
 {{
-  "title": "Barney's plan backfires BADLY 😭 | HIMYM S3E12",
+  "title": "Barney's Schemes 😭 | HIMYM S3E12",
   "description": "Barney tried his most elaborate play yet — and Marshall was watching the whole time.\\n\\nHow I Met Your Mother Season 3, Episode 12 | \\"The Platinum Rule\\"\\n\\n📌 Subscribe for daily HIMYM story reels — the funniest moments cut down to under a minute.\\n\\n#HIMYM #HowIMetYourMother #Barney #BarneyStinson #HIMYMClips #TVShows #Sitcom #FunnyMoments #2000sTV #HIMYMReels",
   "tags": "HIMYM, How I Met Your Mother, Barney Stinson, HIMYM clips, HIMYM funny moments, HIMYM Season 3, sitcom, 2000s TV, Neil Patrick Harris, HIMYM compilation, Playbook, HIMYM shorts, comedy, CBS, HIMYM rewatch",
   "pinned_comment": "Barney really thought this was going to work 😭 Team Barney or Team Marshall here? 👇"
 }}
 
 Rules:
-- title: max 70 chars, punchy hook, episode code (e.g. S3E12), exactly 1 emoji
+- title: format MUST be "[Series Display Name] 😭 | HIMYM SxEx" — use the display name from the series_tag mapping above, max 70 chars, exactly 1 emoji, episode code at end
 - description: 2-line punchy hook → blank line → episode info line → blank line → subscribe CTA line → blank line → exactly 10 hashtags on one line
 - tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme)
 - pinned_comment: must be ONE of these formats — (a) polarizing take specific to this clip: "Team X or Team Y? 👇", (b) ranking prompt: "Rate this [character] moment 1-10 👇", (c) completion gap: "What did [character] say next? 👇". NEVER use generic questions like "which character causes the most chaos". Must reference the specific characters or situation from THIS clip."""
@@ -95,6 +107,7 @@ def generate_yt_metadata(story, episode_name, api_key, retries=5):
         episode_str=ep_str,
         storyline=story['storyline_title'].replace('_', ' '),
         summary=story['storyline_summary'],
+        series_tag=story.get('series_tag', 'gang_at_maclarens'),
         score=story['score'],
     )
     payload = {
