@@ -1,13 +1,15 @@
 """YouTube Data API v3 — upload a vertical short as a scheduled private post."""
 import json
 import os
-import tempfile
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-_SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+# youtube scope is a superset of youtube.upload and also covers playlist management.
+# NOTE: if the stored token only has youtube.upload, re-run setup_yt_oauth.py locally
+# and update the YT_TOKEN_JSON secret with the new token.
+_SCOPES = ['https://www.googleapis.com/auth/youtube']
 _TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', 'yt_token.json')
 
 
@@ -22,6 +24,38 @@ def _build_svc():
         with open(_TOKEN_FILE, 'w') as f:
             f.write(creds.to_json())
     return build('youtube', 'v3', credentials=creds)
+
+
+def _get_or_create_playlist(svc, title):
+    """Return playlist ID for the named playlist on the channel, creating it if absent."""
+    resp = svc.playlists().list(part='snippet', mine=True, maxResults=50).execute()
+    for item in resp.get('items', []):
+        if item['snippet']['title'] == title:
+            return item['id']
+    created = svc.playlists().insert(
+        part='snippet,status',
+        body={
+            'snippet': {'title': title, 'defaultLanguage': 'en'},
+            'status':  {'privacyStatus': 'public'},
+        }
+    ).execute()
+    return created['id']
+
+
+def add_to_playlist(video_id, playlist_title):
+    """Add video_id to the named playlist, creating the playlist if it doesn't exist."""
+    svc = _build_svc()
+    playlist_id = _get_or_create_playlist(svc, playlist_title)
+    svc.playlistItems().insert(
+        part='snippet',
+        body={
+            'snippet': {
+                'playlistId': playlist_id,
+                'resourceId': {'kind': 'youtube#video', 'videoId': video_id},
+            }
+        }
+    ).execute()
+    return playlist_id
 
 
 def upload_scheduled(video_path, title, description, tags_str, publish_at_iso):

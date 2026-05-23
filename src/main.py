@@ -99,6 +99,16 @@ def main():
         uploaded = upload_shorts([short_path], SHORTS_FOLDER_ID, service_account_info)
         drive_file_id = uploaded[0][1] if uploaded else None
 
+        _SERIES_PLAYLIST = {
+            'barneys_schemes':    "Barney's Schemes",
+            'teds_disasters':     "Ted's Disasters",
+            'marshall_and_lily':  'Marshall & Lily',
+            'robins_quirks':      'Robin Being Robin',
+            'slap_bet':           'Slap Bet',
+            'legendary_moments':  'Legendary Moments',
+            'gang_at_maclarens':  'The Gang',
+        }
+
         # Upload to YouTube as a scheduled post (requires YT_TOKEN_JSON secret)
         if not yt_meta:
             ep_upper = episode_name.replace('_', ' ').upper()
@@ -109,8 +119,9 @@ def main():
                 'pinned_comment': '',
             }
             print("      YT metadata fallback used (Gemini unavailable)")
+        yt_video_id = None
         try:
-            from youtube_client import upload_scheduled
+            from youtube_client import upload_scheduled, add_to_playlist
             publish_at = tracker.get_next_publish_slot()
             print(f"[5b] Scheduling on YouTube -> {publish_at}...")
             yt_video_id = upload_scheduled(
@@ -123,6 +134,15 @@ def main():
             print(f"      https://youtu.be/{yt_video_id}")
             tracker.update_yt_url(episode_name, current_run,
                                   story['storyline_title'], yt_video_id, publish_at)
+
+            series_tag = story.get('series_tag', '')
+            playlist_title = _SERIES_PLAYLIST.get(series_tag)
+            if playlist_title:
+                try:
+                    add_to_playlist(yt_video_id, playlist_title)
+                    print(f"      Added to playlist: {playlist_title}")
+                except Exception as pe:
+                    print(f"      Playlist add skipped: {pe}")
         except Exception as e:
             print(f"      YouTube upload skipped: {e}")
 
