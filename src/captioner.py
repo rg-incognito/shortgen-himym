@@ -84,6 +84,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     events = []
     BLOCK       = 4
     MAX_WORD_S  = 0.9   # max seconds any single word stays highlighted
+    CAPTION_LEAD = 0.15  # captions appear this many seconds before the word is spoken
 
     # Group words into blocks of 4
     blocks = [mapped_words[i:i + BLOCK] for i in range(0, len(mapped_words), BLOCK)]
@@ -96,7 +97,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             block_end = min(block_end, next_block_start)
 
         for active_idx, active_word in enumerate(block):
-            seg_start = active_word['start']
+            seg_start = max(0.0, active_word['start'] - CAPTION_LEAD)
             if active_idx + 1 < len(block):
                 # cap intra-block gap too — handles long pauses between words
                 seg_end = min(block[active_idx + 1]['start'], active_word['start'] + MAX_WORD_S)
