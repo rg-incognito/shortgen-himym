@@ -75,14 +75,14 @@ Return ONLY valid JSON, no markdown:
   "title": "Barney's plan backfires BADLY 😭 | HIMYM S3E12",
   "description": "Barney tried his most elaborate play yet — and Marshall was watching the whole time.\\n\\nHow I Met Your Mother Season 3, Episode 12 | \\"The Platinum Rule\\"\\n\\n📌 Subscribe for daily HIMYM story reels — the funniest moments cut down to under a minute.\\n\\n#HIMYM #HowIMetYourMother #Barney #BarneyStinson #HIMYMClips #TVShows #Sitcom #FunnyMoments #2000sTV #HIMYMReels",
   "tags": "HIMYM, How I Met Your Mother, Barney Stinson, HIMYM clips, HIMYM funny moments, HIMYM Season 3, sitcom, 2000s TV, Neil Patrick Harris, HIMYM compilation, Playbook, HIMYM shorts, comedy, CBS, HIMYM rewatch",
-  "pinned_comment": "Barney really thought this was going to work 😭 Which HIMYM character causes the most chaos? 👇"
+  "pinned_comment": "Barney really thought this was going to work 😭 Team Barney or Team Marshall here? 👇"
 }}
 
 Rules:
 - title: max 70 chars, punchy hook, episode code (e.g. S3E12), exactly 1 emoji
 - description: 2-line punchy hook → blank line → episode info line → blank line → subscribe CTA line → blank line → exactly 10 hashtags on one line
 - tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme)
-- pinned_comment: funny/relatable observation + engagement question + 1 emoji + 👇"""
+- pinned_comment: must be ONE of these formats — (a) polarizing take specific to this clip: "Team X or Team Y? 👇", (b) ranking prompt: "Rate this [character] moment 1-10 👇", (c) completion gap: "What did [character] say next? 👇". NEVER use generic questions like "which character causes the most chaos". Must reference the specific characters or situation from THIS clip."""
 
 
 def generate_yt_metadata(story, episode_name, api_key, retries=5):
