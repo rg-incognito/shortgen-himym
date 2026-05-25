@@ -72,8 +72,8 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{_FONT},{_FONT_SIZE},{_WHITE},&H000000FF&,{_OUTLINE},{_SHADOW},-1,0,0,0,100,100,0,0,1,3,1,2,30,30,{_OUT_H - _Y_POS},1
-Style: Active,{_FONT},{_FONT_SIZE},{_YELLOW},&H000000FF&,{_OUTLINE},{_SHADOW},-1,0,0,0,100,100,0,0,1,3,1,2,30,30,{_OUT_H - _Y_POS},1
+Style: Default,{_FONT},{_FONT_SIZE},{_WHITE},&H000000FF&,{_OUTLINE},{_SHADOW},-1,0,0,0,100,100,0,0,1,3,1,8,30,30,{_Y_POS},1
+Style: Active,{_FONT},{_FONT_SIZE},{_YELLOW},&H000000FF&,{_OUTLINE},{_SHADOW},-1,0,0,0,100,100,0,0,1,3,1,8,30,30,{_Y_POS},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -94,7 +94,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         next_block_start = blocks[b_idx + 1][0]['start'] if b_idx + 1 < len(blocks) else None
         block_end = min(block[-1]['end'], block[-1]['start'] + MAX_WORD_S)
         if next_block_start is not None:
-            block_end = min(block_end, next_block_start)
+            block_end = min(block_end, next_block_start - CAPTION_LEAD)
 
         for active_idx, active_word in enumerate(block):
             seg_start = max(0.0, active_word['start'] - CAPTION_LEAD)
