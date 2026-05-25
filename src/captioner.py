@@ -19,7 +19,7 @@ _FONT      = "Arial"
 _FONT_SIZE = 52          # pt, looks good at 1080 wide
 _OUT_W     = 1080
 _OUT_H     = 1920
-_Y_POS     = 1660        # px from top — just above IG/TT username bar
+_Y_POS     = 1450        # px from top — clear of UI chrome at bottom
 _WHITE     = "&H00FFFFFF&"
 _YELLOW    = "&H0000FFFF&"   # BGR in ASS = #FFFF00 = yellow
 _SHADOW    = "&H80000000&"
@@ -99,8 +99,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for active_idx, active_word in enumerate(block):
             seg_start = max(0.0, active_word['start'] - CAPTION_LEAD)
             if active_idx + 1 < len(block):
-                # cap intra-block gap too — handles long pauses between words
-                seg_end = min(block[active_idx + 1]['start'], active_word['start'] + MAX_WORD_S)
+                next_start = block[active_idx + 1]['start']
+                raw_end = min(next_start, active_word['start'] + MAX_WORD_S)
+                seg_end = max(seg_start + 0.05, raw_end - CAPTION_LEAD)
             else:
                 seg_end = block_end
 
