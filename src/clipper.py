@@ -62,8 +62,7 @@ def _merge_clips(clip_paths, output_path):
     try:
         with open(list_file, 'w') as f:
             for p in clip_paths:
-                # escape single quotes in path for ffmpeg concat list
-                safe = p.replace("'", "'\\''")
+                safe = p.replace('\\', '/').replace("'", "\\'")
                 f.write(f"file '{safe}'\n")
         subprocess.run([
             'ffmpeg', '-y',
