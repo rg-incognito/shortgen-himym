@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -87,6 +88,17 @@ def main():
         yt_meta = generate_yt_metadata(story, episode_name, gemini_api_key)
         if yt_meta:
             print(f"      YT title: {yt_meta.get('title', '')}")
+
+        # Extend each clip end by a tail pad so sentence tone finishes naturally.
+        _dur_out = subprocess.run(
+            ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+             '-of', 'default=noprint_wrappers=1:nokey=1', str(video_path)],
+            capture_output=True, text=True,
+        )
+        _src_dur = float(_dur_out.stdout.strip()) if _dur_out.stdout.strip() else float('inf')
+        TAIL_PAD = 0.5
+        for c in story['clips']:
+            c['end_seconds'] = min(c['end_seconds'] + TAIL_PAD, _src_dur - 0.05)
 
         shorts_dir = work_dir / 'shorts'
         shorts_dir.mkdir()
