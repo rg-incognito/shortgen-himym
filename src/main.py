@@ -132,31 +132,28 @@ def main():
             }
             print("      YT metadata fallback used (Gemini unavailable)")
         yt_video_id = None
-        try:
-            from youtube_client import upload_scheduled, add_to_playlist
-            publish_at = tracker.get_next_publish_slot()
-            print(f"[5b] Scheduling on YouTube -> {publish_at}...")
-            yt_video_id = upload_scheduled(
-                short_path,
-                yt_meta['title'],
-                yt_meta['description'],
-                yt_meta['tags'],
-                publish_at,
-            )
-            print(f"      https://youtu.be/{yt_video_id}")
-            tracker.update_yt_url(episode_name, current_run,
-                                  story['storyline_title'], yt_video_id, publish_at)
+        from youtube_client import upload_scheduled, add_to_playlist
+        publish_at = tracker.get_next_publish_slot()
+        print(f"[5b] Scheduling on YouTube -> {publish_at}...")
+        yt_video_id = upload_scheduled(
+            short_path,
+            yt_meta['title'],
+            yt_meta['description'],
+            yt_meta['tags'],
+            publish_at,
+        )
+        print(f"      https://youtu.be/{yt_video_id}")
+        tracker.update_yt_url(episode_name, current_run,
+                              story['storyline_title'], yt_video_id, publish_at)
 
-            series_tag = story.get('series_tag', '')
-            playlist_title = _SERIES_PLAYLIST.get(series_tag)
-            if playlist_title:
-                try:
-                    add_to_playlist(yt_video_id, playlist_title)
-                    print(f"      Added to playlist: {playlist_title}")
-                except Exception as pe:
-                    print(f"      Playlist add skipped: {pe}")
-        except Exception as e:
-            print(f"      YouTube upload skipped: {e}")
+        series_tag = story.get('series_tag', '')
+        playlist_title = _SERIES_PLAYLIST.get(series_tag)
+        if playlist_title:
+            try:
+                add_to_playlist(yt_video_id, playlist_title)
+                print(f"      Added to playlist: {playlist_title}")
+            except Exception as pe:
+                print(f"      Playlist add skipped: {pe}")
 
         # Move the uploaded short to shorts/used/
         if drive_file_id:
