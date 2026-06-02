@@ -1,9 +1,6 @@
 name: Generate HIMYM Shorts
 
 on:
-  schedule:
-    - cron: '30 17 * * *'   # 11:00 PM IST (UTC+5:30) — natural runner delay gives ±10 min
-    - cron: '30 19 * * *'   #  1:00 AM IST (UTC+5:30) — natural runner delay gives ±10 min
   workflow_dispatch:
     inputs:
       video_file_id:
