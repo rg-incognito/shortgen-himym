@@ -17,7 +17,7 @@ from sheet_tracker import SheetTracker
 VIDEOS_FOLDER_ID  = os.environ.get('VIDEOS_FOLDER_ID',  '1bIFaNpfBy1Bp9R14T22EV-hMsYYrLeTS')
 SHORTS_FOLDER_ID  = os.environ.get('SHORTS_FOLDER_ID',  '1kzFXWZQu8QQVtZKeAVvSgHcLaRFfK6tg')
 ARCHIVE_FOLDER_ID = os.environ.get('ARCHIVE_FOLDER_ID', '1nHZCaWO_KvkV52TekkF8ecC5JtIlXqJj')
-MAX_RUNS = 3
+MAX_RUNS = 4
 
 
 def main():
@@ -54,9 +54,10 @@ def main():
 
     episode_name = episode_name.replace(' ', '_')
 
-    prior_runs    = tracker.get_run_count(episode_name)
-    current_run   = prior_runs + 1
-    used_segments = tracker.get_used_segments(episode_name)
+    prior_runs       = tracker.get_run_count(episode_name)
+    current_run      = prior_runs + 1
+    used_segments    = tracker.get_used_segments(episode_name)
+    used_storylines  = tracker.get_used_storylines(episode_name)
 
     print(f"      Episode : {episode_name}")
     print(f"      Run     : {current_run} of {MAX_RUNS}")
@@ -75,7 +76,7 @@ def main():
         print(f"      {len(segments)} segments, {len(all_words)} words transcribed")
 
         print("[3/5] Analyzing for best story arc (Gemini)...")
-        story = analyze_transcript(segments, gemini_api_key, used_segments=used_segments)
+        story = analyze_transcript(segments, gemini_api_key, used_segments=used_segments, used_storylines=used_storylines)
         total_sec = story.get('_total_seconds', 0)
         print(f"      Story: [{story['score']}/10] {story['storyline_title']}  (~{total_sec:.0f}s total)")
         print(f"      Summary: {story['storyline_summary']}")
