@@ -58,22 +58,6 @@ class SheetTracker:
                     pass
         return segs
 
-    def get_used_storylines(self, episode_name):
-        """Return list of storyline titles + summaries already used for this episode."""
-        self._ensure_posting_sheet()
-        res = self._svc.spreadsheets().values().get(
-            spreadsheetId=self._sid,
-            range=f'{_POSTING_SHEET}!A:H',
-        ).execute(num_retries=5)
-        rows = res.get('values', [])[1:]
-        storylines = []
-        for r in rows:
-            if r and r[0] == episode_name and len(r) >= 3:
-                title = r[2]
-                desc  = r[5] if len(r) > 5 else ''
-                storylines.append(f"{title}: {desc[:120]}" if desc else title)
-        return storylines
-
     def _ensure_posting_sheet(self):
         meta   = self._svc.spreadsheets().get(spreadsheetId=self._sid).execute(num_retries=5)
         titles = [s['properties']['title'] for s in meta['sheets']]

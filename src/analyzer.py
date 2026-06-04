@@ -11,33 +11,25 @@ Your task: Create a ~30-second reel that tells ONE complete storyline in tight, 
 
 OUTPUT STRUCTURE (strictly in this order):
 1. HOOK (first clip, 3-5 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. CRITICAL: the very first frame must start MID-ACTION — the character must already be mid-sentence, mid-reaction, or mid-punchline. NEVER open on someone walking into MacLaren's, sitting down, looking around, or any establishing shot. Start on Barney's face already in frame mid-reveal, Marshall's reaction already happening, Ted already mid-disaster.
-2. CONTEXT clips (2-4 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny or emotionally powerful. Only the single KEY line or reaction per beat. Cut everything else.
-3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, emotional reveal, or biggest laugh.
+2. CONTEXT clips (2-4 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
+3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, or biggest laugh.
 
 TOTAL target: 25-35 seconds across all clips combined.
 
-Great storylines to look for — RANKED BY VIRAL POTENTIAL:
-TIER 1 (highest views — pick these first):
-1. A proposal, confession, or romantic revelation — Barney revealing his real plan, Ted finally saying he loves someone, any "I've always loved you" moment
-2. A plot twist or secret exposed — Barney's real scheme revealed, someone finds out a truth that changes everything, the gang discovers a lie
-3. An emotional moment that also lands funny — a character being genuinely vulnerable then immediately undercut by a joke or Barney's reaction
-4. A relationship turning point — first kiss, breakup, jealousy moment with a great reaction shot, Robin and Ted or Barney and Robin moments
-5. Robin's father, Ted/Robin reconnecting, Marshall's family moments — emotionally resonant with comedic payoff
-
-TIER 2 (solid performers):
-6. Barney's elaborate scheme or play from the Playbook that backfires
-7. Ted's romantic disaster or overly-romantic gesture that goes wrong
-8. Marshall and Lily's couple argument with an absurd resolution
-9. Robin's Canadian quirks or Robin Sparkles references causing embarrassment
-10. A slap bet or callback punchline with a great reaction shot
-11. A lie or scheme that unravels with great reaction shots from the whole gang
-
-Previously used storylines (AVOID repeating these themes): {used_storylines}
+Great storylines to look for:
+1. Barney's elaborate scheme or play from the Playbook that backfires
+2. Ted's romantic disaster or overly-romantic gesture that goes wrong
+3. Marshall and Lily's couple argument with an absurd resolution
+4. Robin's Canadian quirks or Robin Sparkles references causing embarrassment
+5. A slap bet or callback punchline with a great reaction shot
+6. Barney saying "Suit up!" or "Legendary!" in a ridiculous context
+7. A lie or scheme that unravels with great reaction shots from the whole gang
+8. A misunderstanding at MacLaren's that snowballs
 
 Transcript (format: [start_sec - end_sec] text):
 {transcript}
 
-Previously used segments (AVOID these timestamps): {used_segments}
+Previously used segments (AVOID these): {used_segments}
 
 Return ONLY a valid JSON object — no markdown, no explanation:
 {{
@@ -81,21 +73,28 @@ Summary  : {summary}
 Series   : {series_tag}
 Score    : {score}/10
 
+The series_tag maps to these display names for the title:
+barneys_schemes → "Barney's Schemes"
+teds_disasters → "Ted's Disasters"
+marshall_and_lily → "Marshall & Lily"
+robins_quirks → "Robin Being Robin"
+slap_bet → "Slap Bet"
+legendary_moments → "Legendary Moments"
+gang_at_maclarens → "The Gang"
+
 Return ONLY valid JSON, no markdown:
 {{
-  "title": "Barney broke the curse and told everyone he was planning to propose to Patrice",
-  "description": "Barney's biggest scheme yet — and the gang had no idea it was all for Robin.\\n\\nHow I Met Your Mother | The Final Page\\n\\n📌 Subscribe for daily HIMYM moments — the best scenes cut down to under a minute.\\n\\n#HIMYM #HowIMetYourMother #BarneyStinson #HIMYMClips #Sitcom #FunnyMoments #2000sTV #BarneyAndRobin #HIMYMShorts #CBS",
-  "tags": "HIMYM, How I Met Your Mother, Barney Stinson, HIMYM clips, HIMYM funny moments, HIMYM compilation, sitcom, 2000s TV, Neil Patrick Harris, HIMYM shorts, comedy, CBS, HIMYM rewatch, Barney Robin, HIMYM moments",
-  "pinned_comment": "Barney really played the long game here 😭 Did you see it coming? 👇"
+  "title": "Barney's Schemes 😭 | HIMYM S3E12",
+  "description": "Barney tried his most elaborate play yet — and Marshall was watching the whole time.\\n\\nHow I Met Your Mother Season 3, Episode 12 | \\"The Platinum Rule\\"\\n\\n📌 Subscribe for daily HIMYM story reels — the funniest moments cut down to under a minute.\\n\\n#HIMYM #HowIMetYourMother #Barney #BarneyStinson #HIMYMClips #TVShows #Sitcom #FunnyMoments #2000sTV #HIMYMReels",
+  "tags": "HIMYM, How I Met Your Mother, Barney Stinson, HIMYM clips, HIMYM funny moments, HIMYM Season 3, sitcom, 2000s TV, Neil Patrick Harris, HIMYM compilation, Playbook, HIMYM shorts, comedy, CBS, HIMYM rewatch",
+  "pinned_comment": "Barney really thought this was going to work 😭 Team Barney or Team Marshall here? 👇"
 }}
 
 Rules:
-- title: Write a narrative sentence (max 90 chars) describing WHAT ACTUALLY HAPPENS in the clip — like a teaser that makes HIMYM fans instantly curious or emotional. Think spoiler-style hook. NO episode code. NO character brand prefix. NO emoji in the middle. Write it like: "Barney finally admitted he designed the whole Patrice plan to propose to Robin" or "Robin found out her dad remarried and nobody told her". One optional emoji at the very end only if it fits naturally.
-- The best titles reference a SPECIFIC surprising/emotional/funny thing that happens — not a vague character description
-- description: 2-line punchy hook → blank line → show + episode name line (no season/episode code) → blank line → subscribe CTA → blank line → exactly 10 hashtags on one line
-- tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme, relationship)
-- For relationship storylines, add ship hashtags: #BarneyAndRobin, #TedAndRobin, #MarshallAndLily depending on who's involved
-- pinned_comment: must be ONE of these formats — (a) polarizing take: "Team X or Team Y? 👇", (b) ranking prompt: "Rate this [character] moment 1-10 👇", (c) completion gap: "What did [character] say next? 👇". NEVER generic. Must reference the specific characters or situation from THIS clip."""
+- title: format MUST be "[Series Display Name] 😭 | HIMYM SxEx" — use the display name from the series_tag mapping above, max 70 chars, exactly 1 emoji, episode code at end
+- description: 2-line punchy hook → blank line → episode info line → blank line → subscribe CTA line → blank line → exactly 10 hashtags on one line
+- tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme)
+- pinned_comment: must be ONE of these formats — (a) polarizing take specific to this clip: "Team X or Team Y? 👇", (b) ranking prompt: "Rate this [character] moment 1-10 👇", (c) completion gap: "What did [character] say next? 👇". NEVER use generic questions like "which character causes the most chaos". Must reference the specific characters or situation from THIS clip."""
 
 
 def generate_yt_metadata(story, episode_name, api_key, retries=5):
@@ -135,7 +134,7 @@ def generate_yt_metadata(story, episode_name, api_key, retries=5):
     return None
 
 
-def analyze_transcript(segments, api_key, used_segments=None, used_storylines=None, retries=5):
+def analyze_transcript(segments, api_key, used_segments=None, retries=5):
     api_key = api_key.strip()
 
     transcript_text = '\n'.join(
@@ -146,14 +145,7 @@ def analyze_transcript(segments, api_key, used_segments=None, used_storylines=No
         ', '.join(f"{s:.0f}s-{e:.0f}s" for s, e in used_segments)
         if used_segments else 'none'
     )
-    storylines_str = (
-        '; '.join(used_storylines) if used_storylines else 'none'
-    )
-    prompt = _PROMPT.format(
-        transcript=transcript_text,
-        used_segments=used_str,
-        used_storylines=storylines_str,
-    )
+    prompt = _PROMPT.format(transcript=transcript_text, used_segments=used_str)
 
     payload = {
         'contents': [{'parts': [{'text': prompt}]}],
