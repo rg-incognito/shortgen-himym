@@ -3,7 +3,30 @@ import re
 import time
 import requests
 
-_GEMINI_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent'
+_GEMINI_BASE     = 'https://generativelanguage.googleapis.com/v1/models/{}:generateContent'
+_FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+
+
+def _gemini_post(payload, api_key, timeout=120):
+    """POST to Gemini with automatic model fallback on 503/429."""
+    for i, model in enumerate(_FALLBACK_MODELS):
+        try:
+            resp = requests.post(
+                _GEMINI_BASE.format(model),
+                params={'key': api_key},
+                json=payload,
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            if i > 0:
+                print(f"  Success with fallback model: {model}")
+            return resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+        except requests.HTTPError as e:
+            if e.response.status_code in (503, 429) and i < len(_FALLBACK_MODELS) - 1:
+                print(f"  {model} returned {e.response.status_code}, trying {_FALLBACK_MODELS[i+1]}")
+                time.sleep(5)
+            else:
+                raise
 
 _PROMPT = """You are a viral short-form video editor working with How I Met Your Mother (US sitcom, 2005-2014).
 
@@ -116,14 +139,7 @@ def generate_yt_metadata(story, episode_name, api_key, retries=5):
     }
     for attempt in range(1, retries + 1):
         try:
-            resp = requests.post(
-                _GEMINI_URL,
-                params={'key': api_key},
-                json=payload,
-                timeout=60,
-            )
-            resp.raise_for_status()
-            raw = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+            raw = _gemini_post(payload, api_key, timeout=60)
             raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
             raw = re.sub(r'\s*```$', '', raw, flags=re.MULTILINE)
             return json.loads(raw)
@@ -154,25 +170,13 @@ def analyze_transcript(segments, api_key, used_segments=None, retries=5):
 
     for attempt in range(1, retries + 1):
         try:
-            resp = requests.post(
-                _GEMINI_URL,
-                params={'key': api_key},
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            raw = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+            raw = _gemini_post(payload, api_key, timeout=120)
             raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
             raw = re.sub(r'\s*```$', '', raw, flags=re.MULTILINE)
             story = json.loads(raw)
             total = sum(c['end_seconds'] - c['start_seconds'] for c in story['clips'])
             story['_total_seconds'] = round(total, 1)
             return story
-        except requests.HTTPError as e:
-            print(f"  Gemini attempt {attempt} failed: {e} — {e.response.text[:300]}")
-            if attempt < retries:
-                wait = 60 if e.response.status_code in (503, 429) else 15
-                time.sleep(wait)
         except Exception as e:
             print(f"  Gemini attempt {attempt} failed: {e}")
             if attempt < retries:
