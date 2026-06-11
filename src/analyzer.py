@@ -30,22 +30,30 @@ def _gemini_post(payload, api_key, timeout=120):
 
 _PROMPT = """You are a viral short-form video editor working with How I Met Your Mother (US sitcom, 2005-2014).
 
-Your task: Create a ~30-second reel that tells ONE complete storyline in tight, punchy cuts — like a TikTok story recap.
+Your task: find the BEST short-form moment in this episode for a vertical reel under 35 seconds, and choose the FORMAT that fits it best.
 
-OUTPUT STRUCTURE (strictly in this order):
+FORMAT "standalone_scene" — use when ONE scene already works as a complete moment on its own:
+- A single continuous scene: an iconic monologue, a quotable line ("Suit up!", "Legendary!", a Barney speech), a tight back-and-forth with a clean punchline, or one big reaction beat
+- 1-3 clips from that ONE scene, back-to-back (small dead-air/cutaway trims between them are fine)
+- Total duration: 10-25 seconds
+- Must be fully funny/emotional WITHOUT any other clips for context
+- First clip starts at the natural beginning of the moment — mid-sentence is fine if that's how it plays, but don't force an artificial "hook" cut from elsewhere
+
+FORMAT "story_recap" — use when the best moment NEEDS setup from earlier in the episode to land:
 1. HOOK (first clip, 3-5 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. CRITICAL: the very first frame must start MID-ACTION — the character must already be mid-sentence, mid-reaction, or mid-punchline. NEVER open on someone walking into MacLaren's, sitting down, looking around, or any establishing shot. Start on Barney's face already in frame mid-reveal, Marshall's reaction already happening, Ted already mid-disaster.
 2. CONTEXT clips (2-4 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
 3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, or biggest laugh.
-
 TOTAL target: 25-35 seconds across all clips combined.
 
-Great storylines to look for:
+Default to "standalone_scene" when a single scene is strong enough on its own — it feels like a real clip rather than an edit and often performs better. Use "story_recap" only when no single scene can stand alone and you genuinely need to connect a setup to a later payoff.
+
+Great storylines/moments to look for:
 1. Barney's elaborate scheme or play from the Playbook that backfires
 2. Ted's romantic disaster or overly-romantic gesture that goes wrong
 3. Marshall and Lily's couple argument with an absurd resolution
 4. Robin's Canadian quirks or Robin Sparkles references causing embarrassment
 5. A slap bet or callback punchline with a great reaction shot
-6. Barney saying "Suit up!" or "Legendary!" in a ridiculous context
+6. Barney saying "Suit up!" or "Legendary!" in a ridiculous context, or one of his iconic monologues/speeches
 7. A lie or scheme that unravels with great reaction shots from the whole gang
 8. A misunderstanding at MacLaren's that snowballs
 
@@ -56,32 +64,28 @@ Previously used segments (AVOID these): {used_segments}
 
 Return ONLY a valid JSON object — no markdown, no explanation:
 {{
-  "storyline_title": "barney_playbook_backfires",
-  "storyline_summary": "Barney's latest play fails spectacularly, the gang finds out, Marshall delivers the slap",
-  "series_tag": "barneys_schemes",
+  "format": "standalone_scene",
+  "storyline_title": "barney_whatever_you_do_speech",
+  "storyline_summary": "Barney delivers his 'whatever you do in this life' speech to Ted at the bar",
+  "series_tag": "legendary_moments",
   "clips": [
     {{
       "start_seconds": 87.0,
-      "end_seconds": 92.0,
-      "label": "hook",
-      "description": "Marshall's face already mid-shock when he realises Barney used the Scuba Diver play — starts on his expression in frame"
+      "end_seconds": 105.0,
+      "label": "scene",
+      "description": "Barney's full speech to Ted, starting mid-sentence as he leans in"
     }}
   ],
   "score": 9
 }}
 
 Rules:
-- 4 to 6 clips total
-- FIRST clip = hook (most viral moment, any timestamp) — first frame must be mid-action, never an establishing shot
-- LAST clip = payoff/punchline/resolution
-- Hook clip: 3-5 seconds only
-- Context clips: 3-6 seconds each — just the KEY line or reaction, nothing more
-- Total combined duration: 25-35 seconds
-- Clips (except the hook) should be in rough CHRONOLOGICAL ORDER
+- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 10-25 seconds, clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
+- If format = "story_recap": 4-6 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 25-35 seconds, clips other than the hook in rough CHRONOLOGICAL ORDER
 - Clips must NOT overlap each other or the previously-used segments
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
 - Pick moments with a clear spoken punchline or strong visual reaction
-- Score 1-10 for viral potential as a compiled reel (10 = highest)
+- Score 1-10 for viral potential (10 = highest)
 - storyline_title: snake_case, max 40 chars
 - series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens"""
 
