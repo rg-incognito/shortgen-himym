@@ -10,7 +10,7 @@ When the browser opens, pick the HIMYM YouTube channel (NOT "The One Where").
 from google_auth_oauthlib.flow import InstalledAppFlow
 import json, os
 
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+SCOPES = ['https://www.googleapis.com/auth/youtube']
 
 # Use the yt_client_secret.json from the bike project (same GCloud project, works for YT)
 CLIENT_SECRET = os.path.join(
