@@ -1,6 +1,9 @@
 name: Generate HIMYM Shorts
 
 on:
+  schedule:
+    - cron: '30 19 * * *'   # 1:00 AM IST
+    - cron: '30 17 * * *'   # 11:00 PM IST
   workflow_dispatch:
     inputs:
       video_file_id:
@@ -93,5 +96,3 @@ jobs:
           VIDEOS_FOLDER_ID:  ${{ secrets.HIMYM_VIDEOS_FOLDER_ID }}
           SHORTS_FOLDER_ID:  ${{ secrets.HIMYM_SHORTS_FOLDER_ID }}
           ARCHIVE_FOLDER_ID: ${{ secrets.HIMYM_ARCHIVE_FOLDER_ID }}
-
-# standby
