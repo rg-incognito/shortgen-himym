@@ -13,7 +13,10 @@ _POSTING_HEADERS  = [
     'yt_title', 'description', 'tags', 'pinned_comment',
     'status', 'scheduled_at', 'yt_url', 'created_at',
 ]
-_PUBLISH_DELAY_MIN = 10  # publish this many minutes after upload
+# Fixed publish slots in UTC: 17:30 (11 PM IST) and 19:30 (1 AM IST).
+# We target the next upcoming slot so the video goes live at a consistent
+# peak-audience time regardless of when the runner actually starts.
+_PUBLISH_SLOTS_UTC = [(17, 30), (19, 30)]
 
 
 class SheetTracker:
@@ -98,8 +101,16 @@ class SheetTracker:
         ).execute(num_retries=5)
 
     def get_next_publish_slot(self):
-        """Return a publish time 10 minutes from now — video goes live shortly after upload."""
-        slot = datetime.datetime.utcnow() + datetime.timedelta(minutes=_PUBLISH_DELAY_MIN)
+        """Return the next fixed publish slot (17:30 or 19:30 UTC) that is at least 5 minutes away."""
+        now = datetime.datetime.utcnow()
+        candidates = []
+        for day_offset in range(2):
+            for hour, minute in _PUBLISH_SLOTS_UTC:
+                t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                t += datetime.timedelta(days=day_offset)
+                if t > now + datetime.timedelta(minutes=5):
+                    candidates.append(t)
+        slot = min(candidates)
         return slot.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     def update_yt_url(self, episode_name, run_number, storyline_title, yt_video_id, scheduled_at):
