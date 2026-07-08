@@ -1,4 +1,5 @@
 import datetime
+import random
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
@@ -13,10 +14,10 @@ _POSTING_HEADERS  = [
     'yt_title', 'description', 'tags', 'pinned_comment',
     'status', 'scheduled_at', 'yt_url', 'created_at',
 ]
-# Fixed publish slots in UTC: 17:30 (11 PM IST) and 19:30 (1 AM IST).
-# We target the next upcoming slot so the video goes live at a consistent
-# peak-audience time regardless of when the runner actually starts.
-_PUBLISH_SLOTS_UTC = [(17, 30), (19, 30)]
+# Publish shortly after the run finishes rather than waiting for a fixed
+# daily slot — the workflow's own cron trigger time is what controls which
+# audience-timezone window the video lands in.
+_PUBLISH_BUFFER_MIN = (10, 15)
 
 
 class SheetTracker:
@@ -101,16 +102,10 @@ class SheetTracker:
         ).execute(num_retries=5)
 
     def get_next_publish_slot(self):
-        """Return the next fixed publish slot (17:30 or 19:30 UTC) that is at least 5 minutes away."""
+        """Return a publish time 10-15 minutes from now (just enough buffer for YouTube to process the upload)."""
         now = datetime.datetime.utcnow()
-        candidates = []
-        for day_offset in range(2):
-            for hour, minute in _PUBLISH_SLOTS_UTC:
-                t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-                t += datetime.timedelta(days=day_offset)
-                if t > now + datetime.timedelta(minutes=5):
-                    candidates.append(t)
-        slot = min(candidates)
+        buffer_min = random.randint(*_PUBLISH_BUFFER_MIN)
+        slot = now + datetime.timedelta(minutes=buffer_min)
         return slot.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     def update_yt_url(self, episode_name, run_number, storyline_title, yt_video_id, scheduled_at):
