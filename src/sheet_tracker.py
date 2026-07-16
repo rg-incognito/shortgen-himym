@@ -1,5 +1,4 @@
 import datetime
-import random
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
@@ -14,10 +13,13 @@ _POSTING_HEADERS  = [
     'yt_title', 'description', 'tags', 'pinned_comment',
     'status', 'scheduled_at', 'yt_url', 'created_at',
 ]
-# Publish shortly after the run finishes rather than waiting for a fixed
-# daily slot — the workflow's own cron trigger time is what controls which
-# audience-timezone window the video lands in.
-_PUBLISH_BUFFER_MIN = (10, 15)
+# Fixed publish slots in UTC: 23:00 and 01:00 (7 PM / 9 PM US Eastern —
+# North America evening prime time). We snap to the nearest upcoming slot
+# instead of publishing run-finish+buffer, because GitHub Actions' schedule
+# queue delays the 01:00 UTC trigger by ~3-4 hours on a regular basis (the
+# 23:00 trigger only slips ~1h) — left unsnapped, that run's video was
+# landing around 12:30 AM ET instead of 9 PM ET.
+_PUBLISH_SLOTS_UTC = [(23, 0), (1, 0)]
 
 
 class SheetTracker:
@@ -102,10 +104,16 @@ class SheetTracker:
         ).execute(num_retries=5)
 
     def get_next_publish_slot(self):
-        """Return a publish time 10-15 minutes from now (just enough buffer for YouTube to process the upload)."""
+        """Return the next fixed publish slot (23:00 or 01:00 UTC) that is at least 5 minutes away."""
         now = datetime.datetime.utcnow()
-        buffer_min = random.randint(*_PUBLISH_BUFFER_MIN)
-        slot = now + datetime.timedelta(minutes=buffer_min)
+        candidates = []
+        for day_offset in range(2):
+            for hour, minute in _PUBLISH_SLOTS_UTC:
+                t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                t += datetime.timedelta(days=day_offset)
+                if t > now + datetime.timedelta(minutes=5):
+                    candidates.append(t)
+        slot = min(candidates)
         return slot.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     def update_yt_url(self, episode_name, run_number, storyline_title, yt_video_id, scheduled_at):
