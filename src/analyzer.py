@@ -47,13 +47,23 @@ TOTAL target: 35-55 seconds across all clips combined — prefer the longer end 
 
 Default to "standalone_scene" when a single scene is strong enough on its own — it feels like a real clip rather than an edit and often performs better. Use "story_recap" only when no single scene can stand alone and you genuinely need to connect a setup to a later payoff.
 
+CHARACTER PRIORITY: Barney and Robin are this channel's best-performing characters —
+Robin-centric clips have the highest median views of any character on the channel, and
+Barney-centric clips are both high-volume and consistently strong. When multiple candidate
+moments in this transcript are comparably funny/strong, PREFER the one where Barney and/or
+Robin are the focal character(s) (on screen, driving the scene, or delivering the punchline)
+over an equally-strong moment centered on Ted, Marshall, or Lily. Do NOT force a weaker
+Barney/Robin moment over a genuinely funnier or more emotional scene involving other
+characters — quality of the moment still comes first, this is a tiebreaker/weighting
+preference, not an exclusion rule.
+
 Great storylines/moments to look for:
 1. Barney's elaborate scheme or play from the Playbook that backfires
-2. Ted's romantic disaster or overly-romantic gesture that goes wrong
-3. Marshall and Lily's couple argument with an absurd resolution
-4. Robin's Canadian quirks or Robin Sparkles references causing embarrassment
-5. A slap bet or callback punchline with a great reaction shot
-6. Barney saying "Suit up!" or "Legendary!" in a ridiculous context, or one of his iconic monologues/speeches
+2. Robin's Canadian quirks, Robin Sparkles references, or Robin's blunt/deadpan reactions causing embarrassment
+3. Barney saying "Suit up!" or "Legendary!" in a ridiculous context, or one of his iconic monologues/speeches
+4. A slap bet or callback punchline with a great reaction shot (especially if Robin or Barney is involved)
+5. Ted's romantic disaster or overly-romantic gesture that goes wrong
+6. Marshall and Lily's couple argument with an absurd resolution
 7. A lie or scheme that unravels with great reaction shots from the whole gang
 8. A misunderstanding at MacLaren's that snowballs
 

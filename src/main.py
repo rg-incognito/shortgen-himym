@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from drive_client import download_video, upload_shorts, pick_video, move_to_archive, move_to_used_folder
 from transcriber import transcribe_video
 from analyzer import analyze_transcript, generate_yt_metadata
-from clipper import create_story_short
+from clipper import create_story_short, extract_thumbnail_frame
 from sheet_tracker import SheetTracker
 
 VIDEOS_FOLDER_ID  = os.environ.get('VIDEOS_FOLDER_ID',  '1bIFaNpfBy1Bp9R14T22EV-hMsYYrLeTS')
@@ -107,6 +107,13 @@ def main():
                                         episode_name, pipeline=diarization_pipeline,
                                         all_words=all_words)
 
+        thumbnail_path = str(shorts_dir / 'thumbnail.jpg')
+        try:
+            extract_thumbnail_frame(short_path, thumbnail_path)
+        except Exception as e:
+            print(f"      Thumbnail frame extraction skipped: {e}")
+            thumbnail_path = None
+
         print("[5/5] Uploading to Drive...")
         uploaded = upload_shorts([short_path], SHORTS_FOLDER_ID, service_account_info)
         drive_file_id = uploaded[0][1] if uploaded else None
@@ -132,7 +139,7 @@ def main():
             }
             print("      YT metadata fallback used (Gemini unavailable)")
         yt_video_id = None
-        from youtube_client import upload_scheduled, add_to_playlist
+        from youtube_client import upload_scheduled, add_to_playlist, set_thumbnail
         publish_at = tracker.get_next_publish_slot()
         print(f"[5b] Scheduling on YouTube -> {publish_at}...")
         yt_video_id = upload_scheduled(
@@ -145,6 +152,13 @@ def main():
         print(f"      https://youtu.be/{yt_video_id}")
         tracker.update_yt_url(episode_name, current_run,
                               story['storyline_title'], yt_video_id, publish_at)
+
+        if thumbnail_path:
+            try:
+                set_thumbnail(yt_video_id, thumbnail_path)
+                print("      Custom thumbnail set")
+            except Exception as e:
+                print(f"      Custom thumbnail skipped: {e}")
 
         series_tag = story.get('series_tag', '')
         playlist_title = _SERIES_PLAYLIST.get(series_tag)

@@ -58,6 +58,18 @@ def add_to_playlist(video_id, playlist_title):
     return playlist_id
 
 
+def set_thumbnail(video_id, image_path):
+    """
+    Set a video's thumbnail to a specific local image (JPEG/PNG, <2MB).
+    Requires the channel to be verified for custom thumbnails — raises on
+    failure so the caller can decide whether that's fatal (it shouldn't be;
+    the video still uploads and publishes fine without a custom thumbnail).
+    """
+    svc = _build_svc()
+    media = MediaFileUpload(image_path, mimetype='image/jpeg')
+    svc.thumbnails().set(videoId=video_id, media_body=media).execute()
+
+
 def upload_scheduled(video_path, title, description, tags_str, publish_at_iso):
     """
     Upload a video to YouTube as a private scheduled post.

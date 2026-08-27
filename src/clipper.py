@@ -57,6 +57,22 @@ def create_story_short(video_path, story, output_dir, episode_name,
             pass
 
 
+def extract_thumbnail_frame(video_path, out_path, timestamp=0.6):
+    """
+    Grab a single JPEG frame from the finished short at `timestamp` (seconds).
+    Defaults inside the hook-card overlay window (captioner._HOOK_DURATION,
+    currently 1.4s) so the frame shows both the character and the bold hook
+    text/emoji — used as the video's explicit thumbnail so YouTube's grid/
+    search surfaces don't fall back to an unpredictable auto-picked frame.
+    """
+    subprocess.run([
+        'ffmpeg', '-y',
+        '-ss', str(timestamp), '-i', video_path,
+        '-frames:v', '1', '-q:v', '2',
+        out_path,
+    ], check=True, capture_output=True)
+
+
 def _merge_clips(clip_paths, output_path):
     """Concatenate same-format clips using ffmpeg concat demuxer (no re-encode)."""
     list_file = tempfile.mktemp(suffix='.txt')
