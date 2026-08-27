@@ -100,7 +100,7 @@ Rules:
 - Score 1-10 for viral potential (10 = highest)
 - storyline_title: snake_case, max 40 chars
 - series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens
-- hook_text: 2-5 words, ALL CAPS, a curiosity-gap phrase describing the clip's core moment or twist WITHOUT giving away the punchline (e.g. "GYM INVESTMENT!?", "THE GENIE PLAN", "DECAF COFFEE?!"). This is burned onto the video as a large on-screen hook card for the first ~1.5 seconds — it is separate from and shorter than the YouTube title.
+- hook_text: 3-8 words, ALL CAPS, describing the clip's premise/moment WITHOUT giving away the punchline (e.g. "HE TRIED TO RIZZ UP A COP", "BARNEY'S GYM INVESTMENT SCHEME", "THE DECAF COFFEE DISASTER"). This is burned onto the video as a persistent white banner across the top of the ENTIRE video (not just the opening) — it can be a touch more descriptive than a quick flash-hook since it stays visible throughout. Still separate from and shorter than the YouTube title.
 - hook_emoji: exactly one emoji matching the reaction (😳 😅 😱 👀 🤦 etc), or "" if none fits naturally — never force one"""
 
 

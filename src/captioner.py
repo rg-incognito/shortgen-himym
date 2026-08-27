@@ -2,13 +2,20 @@
 Viral-style caption overlay — 4-word sliding blocks.
 
 Each block of 4 words is shown simultaneously.  The active word is highlighted
-yellow; the rest are white with a black outline.  When the active word advances
-past the 4th slot the entire block replaces itself with the next 4 words.
+in a color that cycles per block (yellow/cyan/magenta/orange/green); the rest
+are white with a black outline.  When the active word advances past the 4th
+slot the entire block replaces itself with the next 4 words.
 
 Timings come from Whisper word-level timestamps, remapped from episode time
 into the merged video's timeline using the story clip list.
+
+Also renders the persistent top hook banner (render_hook_png) and mixes in a
+background music bed (mix_background_music).
 """
+import glob
 import os
+import random
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -21,13 +28,24 @@ _FONT      = "Arial"
 _FONT_SIZE = 52          # pt, looks good at 1080 wide
 _OUT_W     = 1080
 _OUT_H     = 1920
-_Y_POS     = 1450        # px from top — clear of UI chrome at bottom
+_Y_POS     = 1150        # px from top — roughly face-height, matches high-retention edits
+                          # (vs. a safe lower-third) without sitting directly across the eyes
 _WHITE     = "&H00FFFFFF&"
 _YELLOW    = "&H0000FFFF&"   # BGR in ASS = #FFFF00 = yellow
 _SHADOW    = "&H80000000&"
 _OUTLINE   = "&H00000000&"   # black outline
 
-# --- Hook-card overlay (big bold text shown for the opening ~1.5s) ---
+# Active-word color cycles per 4-word block instead of always yellow — matches
+# competitor edits that change caption color per phrase to keep the eye moving.
+_CAPTION_PALETTE = [
+    _YELLOW,
+    "&H00FFFF00&",   # cyan
+    "&H00FF00FF&",   # magenta
+    "&H00008CFF&",   # orange
+    "&H0000FF00&",   # green
+]
+
+# --- Hook banner (persistent top bar, shown for the whole video — not a flash) ---
 _HOOK_FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",   # ubuntu-latest (CI runner)
     "C:/Windows/Fonts/arialbd.ttf",                            # Windows local dev
@@ -38,13 +56,17 @@ _HOOK_EMOJI_FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/noto-color-emoji/NotoColorEmoji.ttf",
     "C:/Windows/Fonts/seguiemj.ttf",                            # Windows local dev
 ]
-_HOOK_FONT_SIZE  = 108
-_HOOK_MIN_SIZE   = 70     # shrink text down to this size if it doesn't fit in 3 lines
-_HOOK_EMOJI_SIZE = 132
-_HOOK_MAX_WIDTH  = 940    # px — leaves ~70px margin each side of the 1080-wide frame
-_HOOK_MAX_LINES  = 3
-_HOOK_Y_CENTER   = 620    # px from top — upper-middle third, clear of the rolling captions
-_HOOK_DURATION   = 1.4    # seconds the hook card stays on screen
+_HOOK_BAR_HEIGHT = 230               # px — top ~12% of the 1920-tall frame
+_HOOK_BAR_BG     = (255, 255, 255, 255)
+_HOOK_TEXT_COLOR = (0, 0, 0, 255)
+_HOOK_FONT_SIZE  = 64
+_HOOK_MIN_SIZE   = 40     # shrink text down to this size if it doesn't fit in 2 lines
+_HOOK_MAX_WIDTH  = 1000   # px — leaves ~40px margin each side of the 1080-wide frame
+_HOOK_MAX_LINES  = 2
+
+# --- Background music bed ---
+_MUSIC_DIR    = os.path.join(os.path.dirname(__file__), '..', 'music')
+_MUSIC_VOLUME = 0.13   # low bed under dialogue — tune after listening to real output
 
 
 def _find_font(candidates):
@@ -59,8 +81,16 @@ def _remap_words(all_words, story_clips):
     Filter words that fall inside any story clip and remap episode timestamps
     to merged-video timestamps.
 
-    story_clips: list of {start_seconds, end_seconds} in episode time.
-    Returns [{word, start, end}] in merged-video time.
+    story_clips: list of {start_seconds, end_seconds} in episode time, in the
+    ORDER they appear in the output video — NOT necessarily chronological
+    (story_recap's hook clip is often the chronologically-latest moment but
+    always plays first). all_words is iterated in episode-chronological
+    order, so the result must be explicitly re-sorted by merged-video start
+    time before returning — otherwise _build_ass groups words into 4-word
+    blocks assuming list-order == time-order, producing dialogue events with
+    scrambled/overlapping timestamps whenever a clip list isn't chronological.
+
+    Returns [{word, start, end}] in merged-video time, sorted by start.
     """
     # Build cumulative offsets for each clip
     offsets = []
@@ -79,6 +109,7 @@ def _remap_words(all_words, story_clips):
                 new_end   = offset + (min(we, ce) - cs)
                 result.append({'word': w['word'], 'start': new_start, 'end': new_end})
                 break
+    result.sort(key=lambda w: w['start'])
     return result
 
 
@@ -118,6 +149,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     blocks = [mapped_words[i:i + BLOCK] for i in range(0, len(mapped_words), BLOCK)]
 
     for b_idx, block in enumerate(blocks):
+        block_color = _CAPTION_PALETTE[b_idx % len(_CAPTION_PALETTE)]
+
         # Cap block end so it never bleeds into the next block
         next_block_start = blocks[b_idx + 1][0]['start'] if b_idx + 1 < len(blocks) else None
         block_end = min(block[-1]['end'], block[-1]['start'] + MAX_WORD_S)
@@ -141,7 +174,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for j, w in enumerate(block):
                 text = w['word']
                 if j == active_idx:
-                    parts.append(r"{\c" + _YELLOW + r"}" + text + r"{\c" + _WHITE + r"}")
+                    parts.append(r"{\c" + block_color + r"}" + text + r"{\c" + _WHITE + r"}")
                 else:
                     parts.append(text)
 
@@ -171,14 +204,19 @@ def _wrap_lines(draw, text, font, max_width):
 
 def render_hook_png(hook_text, hook_emoji, out_path):
     """
-    Render a big bold hook-text card (transparent PNG, full 1080x1920 canvas)
-    for the opening ~1.5s overlay. Shrinks font size until the text fits within
-    _HOOK_MAX_LINES; falls back to Pillow's built-in font if no system font is found
-    so a missing font can never crash the pipeline. Emoji is best-effort — if no
-    color-emoji font is available on the machine, it's silently skipped.
+    Render a persistent top hook banner (opaque white bar across the top
+    ~12% of the frame, bold black text + optional inline emoji) — composited
+    for the ENTIRE video, not just the opening seconds, so it's baked into
+    every frame including whatever one YouTube auto-picks as the grid
+    thumbnail when no explicit thumbnail is set. Shrinks font size until the
+    text fits within _HOOK_MAX_LINES; falls back to Pillow's built-in font if
+    no system font is found so a missing font can never crash the pipeline.
+    Emoji is best-effort (only attempted for single-line text, silently
+    skipped if no color-emoji font is available).
     """
     img = Image.new('RGBA', (_OUT_W, _OUT_H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, _OUT_W, _HOOK_BAR_HEIGHT], fill=_HOOK_BAR_BG)
 
     font_path = _find_font(_HOOK_FONT_CANDIDATES)
     size = _HOOK_FONT_SIZE
@@ -187,34 +225,95 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     while size >= _HOOK_MIN_SIZE:
         font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default(size=size)
         lines = _wrap_lines(draw, hook_text, font, _HOOK_MAX_WIDTH)
-        if len(lines) <= _HOOK_MAX_LINES:
+        if len(lines) <= _HOOK_MAX_LINES and int(size * 1.2) * len(lines) <= _HOOK_BAR_HEIGHT - 24:
             break
-        size -= 8
+        size -= 6
 
-    line_height = int(size * 1.25)
+    line_height = int(size * 1.2)
     total_height = line_height * len(lines)
-    y = _HOOK_Y_CENTER - total_height // 2
+    y = (_HOOK_BAR_HEIGHT - total_height) // 2
 
-    for line in lines:
-        w = draw.textlength(line, font=font)
-        x = (_OUT_W - w) / 2
-        # thick black outline for legibility over any background, then white fill
-        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255),
-                   stroke_width=6, stroke_fill=(0, 0, 0, 255))
-        y += line_height
-
-    if hook_emoji:
+    emoji_font = None
+    if hook_emoji and len(lines) == 1:
         emoji_font_path = _find_font(_HOOK_EMOJI_FONT_CANDIDATES)
         if emoji_font_path:
             try:
-                emoji_font = ImageFont.truetype(emoji_font_path, _HOOK_EMOJI_SIZE)
-                w = draw.textlength(hook_emoji, font=emoji_font)
-                draw.text(((_OUT_W - w) / 2, y + 10), hook_emoji, font=emoji_font,
-                          embedded_color=True)
+                emoji_font = ImageFont.truetype(emoji_font_path, int(size * 1.05))
             except Exception as exc:
                 print(f"  Hook emoji skipped ({exc})")
+                emoji_font = None
+
+    for idx, line in enumerate(lines):
+        w = draw.textlength(line, font=font)
+        is_last = idx == len(lines) - 1
+        gap = 14
+        emoji_w = draw.textlength(hook_emoji, font=emoji_font) if (emoji_font and is_last) else 0
+        total_w = w + (gap + emoji_w if emoji_w else 0)
+        x = (_OUT_W - total_w) / 2
+        draw.text((x, y), line, font=font, fill=_HOOK_TEXT_COLOR)
+        if emoji_w:
+            ey = y + (line_height - int(size * 1.05)) / 2
+            draw.text((x + w + gap, ey), hook_emoji, font=emoji_font, embedded_color=True)
+        y += line_height
 
     img.save(out_path)
+
+
+def _pick_music_track():
+    tracks = glob.glob(os.path.join(_MUSIC_DIR, '*.mp3'))
+    return random.choice(tracks) if tracks else None
+
+
+def mix_background_music(video_path, output_path, volume=_MUSIC_VOLUME):
+    """
+    Mix a random royalty-free track from music/ under the video's existing
+    dialogue audio as a low background bed (video re-muxed with -c:v copy,
+    so no re-encode/quality loss). Falls back to a plain copy if no tracks
+    are found or the mix fails, so this can never break the upload.
+    """
+    track = _pick_music_track()
+    if not track:
+        print("  Background music: no tracks found in music/ — skipping")
+        shutil.copy2(video_path, output_path)
+        return
+
+    probe = subprocess.run(
+        ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+         '-of', 'default=noprint_wrappers=1:nokey=1', video_path],
+        capture_output=True, text=True
+    )
+    duration = float(probe.stdout.strip()) if probe.stdout.strip() else 60.0
+
+    has_audio = subprocess.run(
+        ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index',
+         '-of', 'csv=p=0', video_path],
+        capture_output=True, text=True
+    ).stdout.strip() != ''
+
+    if has_audio:
+        filter_complex = (
+            f"[1:a]volume={volume},atrim=0:{duration}[music];"
+            f"[0:a][music]amix=inputs=2:duration=first:dropout_transition=0[aout]"
+        )
+    else:
+        filter_complex = f"[1:a]volume={volume},atrim=0:{duration}[aout]"
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-i', video_path,
+        '-stream_loop', '-1', '-i', track,
+        '-filter_complex', filter_complex,
+        '-map', '0:v', '-map', '[aout]',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
+        '-shortest',
+        output_path,
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+        print(f"  Background music: {os.path.basename(track)}")
+    except subprocess.CalledProcessError as e:
+        print(f"  Background music mix failed ({e}), using clean audio")
+        shutil.copy2(video_path, output_path)
 
 
 def burn_captions(video_path, output_path, all_words, story_clips,
@@ -237,7 +336,6 @@ def burn_captions(video_path, output_path, all_words, story_clips,
             if hook_png:
                 _overlay_only(video_path, hook_png, output_path)
             else:
-                import shutil
                 shutil.copy2(video_path, output_path)
             return
 
@@ -265,7 +363,7 @@ def burn_captions(video_path, output_path, all_words, story_clips,
             if hook_png:
                 filter_complex = (
                     f"[0:v]ass={ass_safe},{enhance}[capped];"
-                    f"[capped][1:v]overlay=0:0:enable='between(t,0,{_HOOK_DURATION})'[vout]"
+                    f"[capped][1:v]overlay=0:0[vout]"
                 )
                 cmd = [
                     'ffmpeg', '-y',
@@ -302,13 +400,13 @@ def burn_captions(video_path, output_path, all_words, story_clips,
 
 
 def _overlay_only(video_path, hook_png, output_path):
-    """Composite just the hook card (no dialogue captions available)."""
+    """Composite just the hook banner (no dialogue captions available)."""
     cmd = [
         'ffmpeg', '-y',
         '-i', video_path,
         '-i', hook_png,
         '-filter_complex',
-        f"[0:v][1:v]overlay=0:0:enable='between(t,0,{_HOOK_DURATION})'[vout]",
+        "[0:v][1:v]overlay=0:0[vout]",
         '-map', '[vout]', '-map', '0:a?',
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
         '-c:a', 'aac', '-b:a', '128k',
