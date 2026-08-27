@@ -37,7 +37,8 @@ def create_story_short(video_path, story, output_dir, episode_name,
         out_path = os.path.join(output_dir, f"{episode_name}_{title}_s{score}.mp4")
         if all_words:
             print("  Burning captions...")
-            burn_captions(merged_path, out_path, all_words, clips)
+            burn_captions(merged_path, out_path, all_words, clips,
+                          hook_text=story.get('hook_text'), hook_emoji=story.get('hook_emoji'))
             os.unlink(merged_path)
         else:
             os.rename(merged_path, out_path)

@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFont
+
 
 # ASS style constants
 _FONT      = "Arial"
@@ -24,6 +26,32 @@ _WHITE     = "&H00FFFFFF&"
 _YELLOW    = "&H0000FFFF&"   # BGR in ASS = #FFFF00 = yellow
 _SHADOW    = "&H80000000&"
 _OUTLINE   = "&H00000000&"   # black outline
+
+# --- Hook-card overlay (big bold text shown for the opening ~1.5s) ---
+_HOOK_FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",   # ubuntu-latest (CI runner)
+    "C:/Windows/Fonts/arialbd.ttf",                            # Windows local dev
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",       # macOS
+]
+_HOOK_EMOJI_FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+    "/usr/share/fonts/truetype/noto-color-emoji/NotoColorEmoji.ttf",
+    "C:/Windows/Fonts/seguiemj.ttf",                            # Windows local dev
+]
+_HOOK_FONT_SIZE  = 108
+_HOOK_MIN_SIZE   = 70     # shrink text down to this size if it doesn't fit in 3 lines
+_HOOK_EMOJI_SIZE = 132
+_HOOK_MAX_WIDTH  = 940    # px — leaves ~70px margin each side of the 1080-wide frame
+_HOOK_MAX_LINES  = 3
+_HOOK_Y_CENTER   = 620    # px from top — upper-middle third, clear of the rolling captions
+_HOOK_DURATION   = 1.4    # seconds the hook card stays on screen
+
+
+def _find_font(candidates):
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
 
 def _remap_words(all_words, story_clips):
@@ -126,44 +154,164 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return header + "\n".join(events) + "\n"
 
 
-def burn_captions(video_path, output_path, all_words, story_clips):
+def _wrap_lines(draw, text, font, max_width):
+    words = text.split()
+    lines, current = [], ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if draw.textlength(candidate, font=font) <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+def render_hook_png(hook_text, hook_emoji, out_path):
+    """
+    Render a big bold hook-text card (transparent PNG, full 1080x1920 canvas)
+    for the opening ~1.5s overlay. Shrinks font size until the text fits within
+    _HOOK_MAX_LINES; falls back to Pillow's built-in font if no system font is found
+    so a missing font can never crash the pipeline. Emoji is best-effort — if no
+    color-emoji font is available on the machine, it's silently skipped.
+    """
+    img = Image.new('RGBA', (_OUT_W, _OUT_H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    font_path = _find_font(_HOOK_FONT_CANDIDATES)
+    size = _HOOK_FONT_SIZE
+    lines = [hook_text]
+    font = None
+    while size >= _HOOK_MIN_SIZE:
+        font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default(size=size)
+        lines = _wrap_lines(draw, hook_text, font, _HOOK_MAX_WIDTH)
+        if len(lines) <= _HOOK_MAX_LINES:
+            break
+        size -= 8
+
+    line_height = int(size * 1.25)
+    total_height = line_height * len(lines)
+    y = _HOOK_Y_CENTER - total_height // 2
+
+    for line in lines:
+        w = draw.textlength(line, font=font)
+        x = (_OUT_W - w) / 2
+        # thick black outline for legibility over any background, then white fill
+        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255),
+                   stroke_width=6, stroke_fill=(0, 0, 0, 255))
+        y += line_height
+
+    if hook_emoji:
+        emoji_font_path = _find_font(_HOOK_EMOJI_FONT_CANDIDATES)
+        if emoji_font_path:
+            try:
+                emoji_font = ImageFont.truetype(emoji_font_path, _HOOK_EMOJI_SIZE)
+                w = draw.textlength(hook_emoji, font=emoji_font)
+                draw.text(((_OUT_W - w) / 2, y + 10), hook_emoji, font=emoji_font,
+                          embedded_color=True)
+            except Exception as exc:
+                print(f"  Hook emoji skipped ({exc})")
+
+    img.save(out_path)
+
+
+def burn_captions(video_path, output_path, all_words, story_clips,
+                   hook_text=None, hook_emoji=None):
     mapped = _remap_words(all_words, story_clips)
-    if not mapped:
-        print("  Captions: no words mapped — copying without captions")
-        import shutil
-        shutil.copy2(video_path, output_path)
-        return
 
-    print(f"  Captions: {len(mapped)} words across {len(story_clips)} clips")
-
-    probe = subprocess.run(
-        ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
-         '-of', 'default=noprint_wrappers=1:nokey=1', video_path],
-        capture_output=True, text=True
-    )
-    total_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 60.0
-
-    ass_content = _build_ass(mapped, total_duration)
-    ass_file = tempfile.mktemp(suffix='.ass')
-    try:
-        with open(ass_file, 'w', encoding='utf-8') as f:
-            f.write(ass_content)
-
-        ass_safe = ass_file.replace('\\', '/')
-        enhance   = "unsharp=5:5:0.8:3:3:0,eq=contrast=1.05:saturation=1.1"
-
-        cmd = [
-            'ffmpeg', '-y',
-            '-i', video_path,
-            '-vf', f"ass={ass_safe},{enhance}",
-            '-map', '0:v', '-map', '0:a?',
-            '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
-            '-c:a', 'aac', '-b:a', '128k',
-            output_path,
-        ]
-        subprocess.run(cmd, check=True, capture_output=True)
-    finally:
+    hook_png = None
+    if hook_text:
+        hook_png = tempfile.mktemp(suffix='.png')
         try:
-            os.unlink(ass_file)
-        except OSError:
-            pass
+            render_hook_png(hook_text, hook_emoji or '', hook_png)
+        except Exception as exc:
+            print(f"  Hook card skipped ({exc})")
+            hook_png = None
+
+    try:
+        if not mapped:
+            print("  Captions: no words mapped" +
+                  (" — hook card only" if hook_png else " — copying without captions"))
+            if hook_png:
+                _overlay_only(video_path, hook_png, output_path)
+            else:
+                import shutil
+                shutil.copy2(video_path, output_path)
+            return
+
+        print(f"  Captions: {len(mapped)} words across {len(story_clips)} clips" +
+              (" + hook card" if hook_png else ""))
+
+        probe = subprocess.run(
+            ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+             '-of', 'default=noprint_wrappers=1:nokey=1', video_path],
+            capture_output=True, text=True
+        )
+        total_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 60.0
+
+        ass_content = _build_ass(mapped, total_duration)
+        ass_file = tempfile.mktemp(suffix='.ass')
+        try:
+            with open(ass_file, 'w', encoding='utf-8') as f:
+                f.write(ass_content)
+
+            # Escape ':' (e.g. a Windows drive letter) so ffmpeg's filter-option
+            # parser doesn't mistake it for a key=value separator.
+            ass_safe = ass_file.replace('\\', '/').replace(':', '\\:')
+            enhance  = "unsharp=5:5:0.8:3:3:0,eq=contrast=1.05:saturation=1.1"
+
+            if hook_png:
+                filter_complex = (
+                    f"[0:v]ass={ass_safe},{enhance}[capped];"
+                    f"[capped][1:v]overlay=0:0:enable='between(t,0,{_HOOK_DURATION})'[vout]"
+                )
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', video_path,
+                    '-i', hook_png,
+                    '-filter_complex', filter_complex,
+                    '-map', '[vout]', '-map', '0:a?',
+                    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    output_path,
+                ]
+            else:
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', video_path,
+                    '-vf', f"ass={ass_safe},{enhance}",
+                    '-map', '0:v', '-map', '0:a?',
+                    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    output_path,
+                ]
+            subprocess.run(cmd, check=True, capture_output=True)
+        finally:
+            try:
+                os.unlink(ass_file)
+            except OSError:
+                pass
+    finally:
+        if hook_png:
+            try:
+                os.unlink(hook_png)
+            except OSError:
+                pass
+
+
+def _overlay_only(video_path, hook_png, output_path):
+    """Composite just the hook card (no dialogue captions available)."""
+    cmd = [
+        'ffmpeg', '-y',
+        '-i', video_path,
+        '-i', hook_png,
+        '-filter_complex',
+        f"[0:v][1:v]overlay=0:0:enable='between(t,0,{_HOOK_DURATION})'[vout]",
+        '-map', '[vout]', '-map', '0:a?',
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+        '-c:a', 'aac', '-b:a', '128k',
+        output_path,
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)

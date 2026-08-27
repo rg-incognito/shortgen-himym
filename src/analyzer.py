@@ -35,15 +35,15 @@ Your task: find the BEST short-form moment in this episode for a vertical reel u
 FORMAT "standalone_scene" — use when ONE scene already works as a complete moment on its own:
 - A single continuous scene: an iconic monologue, a quotable line ("Suit up!", "Legendary!", a Barney speech), a tight back-and-forth with a clean punchline, or one big reaction beat
 - 1-3 clips from that ONE scene, back-to-back (small dead-air/cutaway trims between them are fine)
-- Total duration: 10-25 seconds
+- Total duration: 10-45 seconds — prefer the longer end when the scene has enough genuine content to sustain it, but never pad with dead air just to extend length
 - Must be fully funny/emotional WITHOUT any other clips for context
 - First clip starts at the natural beginning of the moment — mid-sentence is fine if that's how it plays, but don't force an artificial "hook" cut from elsewhere
 
 FORMAT "story_recap" — use when the best moment NEEDS setup from earlier in the episode to land:
 1. HOOK (first clip, 3-5 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. CRITICAL: the very first frame must start MID-ACTION — the character must already be mid-sentence, mid-reaction, or mid-punchline. NEVER open on someone walking into MacLaren's, sitting down, looking around, or any establishing shot. Start on Barney's face already in frame mid-reveal, Marshall's reaction already happening, Ted already mid-disaster.
-2. CONTEXT clips (2-4 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
+2. CONTEXT clips (2-5 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
 3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, or biggest laugh.
-TOTAL target: 25-35 seconds across all clips combined.
+TOTAL target: 35-55 seconds across all clips combined — prefer the longer end when the storyline has enough genuine beats, but never pad with dead air or a redundant context clip just to extend length.
 
 Default to "standalone_scene" when a single scene is strong enough on its own — it feels like a real clip rather than an edit and often performs better. Use "story_recap" only when no single scene can stand alone and you genuinely need to connect a setup to a later payoff.
 
@@ -68,6 +68,8 @@ Return ONLY a valid JSON object — no markdown, no explanation:
   "storyline_title": "barney_whatever_you_do_speech",
   "storyline_summary": "Barney delivers his 'whatever you do in this life' speech to Ted at the bar",
   "series_tag": "legendary_moments",
+  "hook_text": "THE SPEECH THAT CHANGED EVERYTHING",
+  "hook_emoji": "😳",
   "clips": [
     {{
       "start_seconds": 87.0,
@@ -80,14 +82,16 @@ Return ONLY a valid JSON object — no markdown, no explanation:
 }}
 
 Rules:
-- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 10-25 seconds, clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
-- If format = "story_recap": 4-6 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 25-35 seconds, clips other than the hook in rough CHRONOLOGICAL ORDER
+- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 10-45 seconds (prefer longer when the scene supports it, never pad), clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
+- If format = "story_recap": 4-7 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 35-55 seconds (prefer longer when there are enough genuine beats, never pad), clips other than the hook in rough CHRONOLOGICAL ORDER
 - Clips must NOT overlap each other or the previously-used segments
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
 - Pick moments with a clear spoken punchline or strong visual reaction
 - Score 1-10 for viral potential (10 = highest)
 - storyline_title: snake_case, max 40 chars
-- series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens"""
+- series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens
+- hook_text: 2-5 words, ALL CAPS, a curiosity-gap phrase describing the clip's core moment or twist WITHOUT giving away the punchline (e.g. "GYM INVESTMENT!?", "THE GENIE PLAN", "DECAF COFFEE?!"). This is burned onto the video as a large on-screen hook card for the first ~1.5 seconds — it is separate from and shorter than the YouTube title.
+- hook_emoji: exactly one emoji matching the reaction (😳 😅 😱 👀 🤦 etc), or "" if none fits naturally — never force one"""
 
 
 _YT_PROMPT = """You are a YouTube content strategist for a How I Met Your Mother clips channel called "Legen-dary Clips".
@@ -111,17 +115,43 @@ gang_at_maclarens → "The Gang"
 
 Return ONLY valid JSON, no markdown:
 {{
-  "title": "Barney's Schemes 😭 | HIMYM S3E12",
+  "title": "Barney tries the platinum rule —it backfires instantly | Barney's Schemes S3E12",
   "description": "Barney tried his most elaborate play yet — and Marshall was watching the whole time.\\n\\nHow I Met Your Mother Season 3, Episode 12 | \\"The Platinum Rule\\"\\n\\n📌 Subscribe for daily HIMYM story reels — the funniest moments cut down to under a minute.\\n\\n#HIMYM #HowIMetYourMother #Barney #BarneyStinson #HIMYMClips #TVShows #Sitcom #FunnyMoments #2000sTV #HIMYMReels",
   "tags": "HIMYM, How I Met Your Mother, Barney Stinson, HIMYM clips, HIMYM funny moments, HIMYM Season 3, sitcom, 2000s TV, Neil Patrick Harris, HIMYM compilation, Playbook, HIMYM shorts, comedy, CBS, HIMYM rewatch",
   "pinned_comment": "Barney really thought this was going to work 😭 Team Barney or Team Marshall here? 👇"
 }}
 
 Rules:
-- title: format MUST be "[Series Display Name] 😭 | HIMYM SxEx" — use the display name from the series_tag mapping above, max 70 chars, exactly 1 emoji, episode code at end
+- title: format is "{{specific curiosity-gap phrase describing THIS clip's moment, using an em-dash or ellipsis to withhold the punchline}} | {{Series Display Name}} SxEx" — use the display name from the series_tag mapping above, max 90 chars total. The phrase must be specific to what actually happens in this clip, not a generic character/series label — e.g. "Ted tries to ask the doctor out —she drops the bomb", "Lily asked for decaf... it did not go well". Emoji optional — include at most 1 only if it fits naturally, never forced.
 - description: 2-line punchy hook → blank line → episode info line → blank line → subscribe CTA line → blank line → exactly 10 hashtags on one line
-- tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme)
+- tags: exactly 15 tags, comma-separated, mix of broad (HIMYM) and specific (character, theme) — a fixed set of broader adjacent-sitcom tags is appended automatically after this, so keep these 15 HIMYM-specific
 - pinned_comment: must be ONE of these formats — (a) polarizing take specific to this clip: "Team X or Team Y? 👇", (b) ranking prompt: "Rate this [character] moment 1-10 👇", (c) completion gap: "What did [character] say next? 👇". NEVER use generic questions like "which character causes the most chaos". Must reference the specific characters or situation from THIS clip."""
+
+
+# Appended to whatever HIMYM-specific tags Gemini generates, so every video also
+# surfaces in broader "sitcom clips" search/suggested traffic, not just HIMYM search.
+# YouTube caps combined tags at 500 chars — _append_cross_show_tags truncates to fit.
+_CROSS_SHOW_TAGS = [
+    "Friends", "The Office", "Brooklyn Nine-Nine", "Parks and Recreation",
+    "Modern Family", "sitcom clips", "TV show moments", "2000s sitcoms",
+    "classic sitcoms", "relatable humor",
+]
+_MAX_TAGS_CHARS = 480  # leave a little headroom under YouTube's 500-char cap
+
+
+def _append_cross_show_tags(tags_str):
+    existing = [t.strip() for t in tags_str.split(',') if t.strip()]
+    seen = {t.lower() for t in existing}
+    combined = list(existing)
+    for tag in _CROSS_SHOW_TAGS:
+        if tag.lower() in seen:
+            continue
+        candidate = combined + [tag]
+        if len(', '.join(candidate)) > _MAX_TAGS_CHARS:
+            break
+        combined = candidate
+        seen.add(tag.lower())
+    return ', '.join(combined)
 
 
 def generate_yt_metadata(story, episode_name, api_key, retries=5):
@@ -146,7 +176,9 @@ def generate_yt_metadata(story, episode_name, api_key, retries=5):
             raw = _gemini_post(payload, api_key, timeout=60)
             raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
             raw = re.sub(r'\s*```$', '', raw, flags=re.MULTILINE)
-            return json.loads(raw)
+            meta = json.loads(raw)
+            meta['tags'] = _append_cross_show_tags(meta.get('tags', ''))
+            return meta
         except Exception as e:
             print(f"  YT metadata attempt {attempt} failed: {e}")
             if attempt < retries:
