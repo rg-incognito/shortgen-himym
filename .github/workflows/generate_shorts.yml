@@ -1,6 +1,9 @@
 name: Generate HIMYM Shorts
 
 on:
+  schedule:
+    - cron: '0 23 * * *'   # 7:00 PM US Eastern — North America evening prime time
+    - cron: '0 1 * * *'    # 9:00 PM US Eastern — North America evening prime time
   workflow_dispatch:
     inputs:
       video_file_id:
