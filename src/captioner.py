@@ -56,7 +56,8 @@ _HOOK_EMOJI_FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/noto-color-emoji/NotoColorEmoji.ttf",
     "C:/Windows/Fonts/seguiemj.ttf",                            # Windows local dev
 ]
-_HOOK_BAR_HEIGHT = 230               # px — top ~12% of the 1920-tall frame
+_HOOK_BAR_HEIGHT = 320               # px — top ~17% of the 1920-tall frame
+_HOOK_TOP_SAFE_PAD = 90              # px reserved at the top of the bar so text clears phone camera cutouts/notches
 _HOOK_BAR_BG     = (255, 255, 255, 255)
 _HOOK_TEXT_COLOR = (0, 0, 0, 255)
 _HOOK_FONT_SIZE  = 64
@@ -205,14 +206,16 @@ def _wrap_lines(draw, text, font, max_width):
 def render_hook_png(hook_text, hook_emoji, out_path):
     """
     Render a persistent top hook banner (opaque white bar across the top
-    ~12% of the frame, bold black text + optional inline emoji) — composited
+    ~17% of the frame, bold black text + optional inline emoji) — composited
     for the ENTIRE video, not just the opening seconds, so it's baked into
     every frame including whatever one YouTube auto-picks as the grid
-    thumbnail when no explicit thumbnail is set. Shrinks font size until the
-    text fits within _HOOK_MAX_LINES; falls back to Pillow's built-in font if
-    no system font is found so a missing font can never crash the pipeline.
-    Emoji is best-effort (only attempted for single-line text, silently
-    skipped if no color-emoji font is available).
+    thumbnail when no explicit thumbnail is set. Text is pushed down within
+    the bar by _HOOK_TOP_SAFE_PAD so it clears phone camera cutouts/notches
+    that otherwise overlap the very top of a full-bleed vertical video.
+    Shrinks font size until the text fits within _HOOK_MAX_LINES; falls back
+    to Pillow's built-in font if no system font is found so a missing font
+    can never crash the pipeline. Emoji is best-effort (only attempted for
+    single-line text, silently skipped if no color-emoji font is available).
     """
     img = Image.new('RGBA', (_OUT_W, _OUT_H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -225,13 +228,14 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     while size >= _HOOK_MIN_SIZE:
         font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default(size=size)
         lines = _wrap_lines(draw, hook_text, font, _HOOK_MAX_WIDTH)
-        if len(lines) <= _HOOK_MAX_LINES and int(size * 1.2) * len(lines) <= _HOOK_BAR_HEIGHT - 24:
+        available = _HOOK_BAR_HEIGHT - _HOOK_TOP_SAFE_PAD - 24
+        if len(lines) <= _HOOK_MAX_LINES and int(size * 1.2) * len(lines) <= available:
             break
         size -= 6
 
     line_height = int(size * 1.2)
     total_height = line_height * len(lines)
-    y = (_HOOK_BAR_HEIGHT - total_height) // 2
+    y = _HOOK_TOP_SAFE_PAD + (_HOOK_BAR_HEIGHT - _HOOK_TOP_SAFE_PAD - total_height) // 2
 
     emoji_font = None
     if hook_emoji and len(lines) == 1:
