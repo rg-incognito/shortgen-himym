@@ -238,30 +238,56 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     total_height = line_height * len(lines)
     y = _HOOK_TOP_SAFE_PAD + (_HOOK_BAR_HEIGHT - _HOOK_TOP_SAFE_PAD - total_height) // 2
 
-    emoji_font = None
+    emoji_img = None
     if hook_emoji:
         emoji_font_path = _find_font(_HOOK_EMOJI_FONT_CANDIDATES)
         if emoji_font_path:
-            try:
-                emoji_font = ImageFont.truetype(emoji_font_path, int(size * 1.05))
-            except Exception as exc:
-                print(f"  Hook emoji skipped ({exc})")
-                emoji_font = None
+            emoji_img = _render_emoji_glyph(hook_emoji, emoji_font_path, int(size * 1.05))
+            if emoji_img is None:
+                print("  Hook emoji skipped (no usable strike size in emoji font)")
 
     for idx, line in enumerate(lines):
         w = draw.textlength(line, font=font)
         is_last = idx == len(lines) - 1
         gap = 14
-        emoji_w = draw.textlength(hook_emoji, font=emoji_font) if (emoji_font and is_last) else 0
+        emoji_w = emoji_img.width if (emoji_img and is_last) else 0
         total_w = w + (gap + emoji_w if emoji_w else 0)
         x = (_OUT_W - total_w) / 2
         draw.text((x, y), line, font=font, fill=_HOOK_TEXT_COLOR)
         if emoji_w:
-            ey = y + (line_height - int(size * 1.05)) / 2
-            draw.text((x + w + gap, ey), hook_emoji, font=emoji_font, embedded_color=True)
+            ey = y + (line_height - emoji_img.height) / 2
+            img.paste(emoji_img, (int(x + w + gap), int(ey)), emoji_img)
         y += line_height
 
     img.save(out_path)
+
+
+# NotoColorEmoji (the emoji font on the Ubuntu CI runner) is a CBDT/CBLC
+# bitmap-strike font: it only supports a handful of fixed embedded pixel
+# sizes, and ImageFont.truetype raises "invalid pixel size" for anything
+# else — unlike Windows' Segoe UI Emoji, which accepts any size. Render at
+# whichever strike size actually loads, then resize the glyph image itself
+# to match the surrounding text height.
+_EMOJI_STRIKE_SIZES = (109, 136, 96, 128, 64, 72, 160)
+
+
+def _render_emoji_glyph(emoji_str, font_path, target_px):
+    for candidate in (target_px,) + _EMOJI_STRIKE_SIZES:
+        try:
+            font = ImageFont.truetype(font_path, candidate)
+        except OSError:
+            continue
+        canvas = Image.new('RGBA', (candidate * len(emoji_str) + 10, candidate + 10), (0, 0, 0, 0))
+        ImageDraw.Draw(canvas).text((0, 0), emoji_str, font=font, embedded_color=True)
+        bbox = canvas.getbbox()
+        if not bbox:
+            return None
+        glyph = canvas.crop(bbox)
+        if target_px and glyph.height != target_px:
+            scale = target_px / glyph.height
+            glyph = glyph.resize((max(1, int(glyph.width * scale)), target_px), Image.LANCZOS)
+        return glyph
+    return None
 
 
 def _pick_music_track():
