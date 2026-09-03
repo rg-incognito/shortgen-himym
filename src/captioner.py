@@ -214,8 +214,9 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     that otherwise overlap the very top of a full-bleed vertical video.
     Shrinks font size until the text fits within _HOOK_MAX_LINES; falls back
     to Pillow's built-in font if no system font is found so a missing font
-    can never crash the pipeline. Emoji is best-effort (only attempted for
-    single-line text, silently skipped if no color-emoji font is available).
+    can never crash the pipeline. Emoji (one or more characters, e.g. "🥺👏")
+    is appended after the last line — best-effort, silently skipped if no
+    color-emoji font is available.
     """
     img = Image.new('RGBA', (_OUT_W, _OUT_H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -238,7 +239,7 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     y = _HOOK_TOP_SAFE_PAD + (_HOOK_BAR_HEIGHT - _HOOK_TOP_SAFE_PAD - total_height) // 2
 
     emoji_font = None
-    if hook_emoji and len(lines) == 1:
+    if hook_emoji:
         emoji_font_path = _find_font(_HOOK_EMOJI_FONT_CANDIDATES)
         if emoji_font_path:
             try:

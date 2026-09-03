@@ -101,7 +101,7 @@ Rules:
 - storyline_title: snake_case, max 40 chars
 - series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens
 - hook_text: 3-8 words, ALL CAPS, describing the clip's premise/moment WITHOUT giving away the punchline (e.g. "HE TRIED TO RIZZ UP A COP", "BARNEY'S GYM INVESTMENT SCHEME", "THE DECAF COFFEE DISASTER"). This is burned onto the video as a persistent white banner across the top of the ENTIRE video (not just the opening) — it can be a touch more descriptive than a quick flash-hook since it stays visible throughout. Still separate from and shorter than the YouTube title.
-- hook_emoji: exactly one emoji matching the reaction (😳 😅 😱 👀 🤦 etc), or "" if none fits naturally — never force one"""
+- hook_emoji: 1-2 emoji matching the reaction (😳 😅 😱 👀 🤦 🥺👏 etc), or "" if none fit naturally — never force one"""
 
 
 _YT_PROMPT = """You are a YouTube content strategist for a How I Met Your Mother clips channel called "Legen-dary Clips".
