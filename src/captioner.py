@@ -62,7 +62,7 @@ _HOOK_BAR_BG     = (255, 255, 255, 255)
 _HOOK_TEXT_COLOR = (0, 0, 0, 255)
 _HOOK_FONT_SIZE  = 64
 _HOOK_MIN_SIZE   = 40     # shrink text down to this size if it doesn't fit in 2 lines
-_HOOK_MAX_WIDTH  = 1000   # px — leaves ~40px margin each side of the 1080-wide frame
+_HOOK_MAX_WIDTH  = 900    # px — leaves ~90px margin each side of the 1080-wide frame
 _HOOK_MAX_LINES  = 2
 
 # --- Background music bed ---
@@ -228,7 +228,12 @@ def render_hook_png(hook_text, hook_emoji, out_path):
     font = None
     while size >= _HOOK_MIN_SIZE:
         font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default(size=size)
-        lines = _wrap_lines(draw, hook_text, font, _HOOK_MAX_WIDTH)
+        # Reserve room for the trailing emoji (roughly one font-size-wide glyph
+        # per character, plus the gap) so wrapping never produces a line that
+        # only overflows the 1080px frame once the emoji is appended at render time.
+        emoji_reserve = int(size * 1.1) * len(hook_emoji) + 14 if hook_emoji else 0
+        wrap_width = max(200, _HOOK_MAX_WIDTH - emoji_reserve)
+        lines = _wrap_lines(draw, hook_text, font, wrap_width)
         available = _HOOK_BAR_HEIGHT - _HOOK_TOP_SAFE_PAD - 24
         if len(lines) <= _HOOK_MAX_LINES and int(size * 1.2) * len(lines) <= available:
             break
