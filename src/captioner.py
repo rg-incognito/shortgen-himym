@@ -65,6 +65,14 @@ _HOOK_MIN_SIZE   = 40     # shrink text down to this size if it doesn't fit in 2
 _HOOK_MAX_WIDTH  = 900    # px — leaves ~90px margin each side of the 1080-wide frame
 _HOOK_MAX_LINES  = 2
 
+# When a hook banner is present, the video itself is shrunk (preserving its
+# 9:16 aspect) and pushed down to sit entirely below the bar, instead of the
+# bar painting over the top of a full-bleed video — otherwise faces framed
+# near the top of the source shot get visually covered by the opaque banner.
+_VIDEO_AVAIL_H  = _OUT_H - _HOOK_BAR_HEIGHT
+_VIDEO_SCALE_W  = int(_OUT_W * _VIDEO_AVAIL_H / _OUT_H)
+_VIDEO_PAD_X    = (_OUT_W - _VIDEO_SCALE_W) // 2
+
 # --- Background music bed ---
 _MUSIC_DIR    = os.path.join(os.path.dirname(__file__), '..', 'music')
 _MUSIC_VOLUME = 0.13   # low bed under dialogue — tune after listening to real output
@@ -398,7 +406,9 @@ def burn_captions(video_path, output_path, all_words, story_clips,
 
             if hook_png:
                 filter_complex = (
-                    f"[0:v]ass={ass_safe},{enhance}[capped];"
+                    f"[0:v]ass={ass_safe},{enhance},"
+                    f"scale={_VIDEO_SCALE_W}:{_VIDEO_AVAIL_H},"
+                    f"pad={_OUT_W}:{_OUT_H}:{_VIDEO_PAD_X}:{_HOOK_BAR_HEIGHT}:black[capped];"
                     f"[capped][1:v]overlay=0:0[vout]"
                 )
                 cmd = [
@@ -437,12 +447,16 @@ def burn_captions(video_path, output_path, all_words, story_clips,
 
 def _overlay_only(video_path, hook_png, output_path):
     """Composite just the hook banner (no dialogue captions available)."""
+    filter_complex = (
+        f"[0:v]scale={_VIDEO_SCALE_W}:{_VIDEO_AVAIL_H},"
+        f"pad={_OUT_W}:{_OUT_H}:{_VIDEO_PAD_X}:{_HOOK_BAR_HEIGHT}:black[vid];"
+        f"[vid][1:v]overlay=0:0[vout]"
+    )
     cmd = [
         'ffmpeg', '-y',
         '-i', video_path,
         '-i', hook_png,
-        '-filter_complex',
-        "[0:v][1:v]overlay=0:0[vout]",
+        '-filter_complex', filter_complex,
         '-map', '[vout]', '-map', '0:a?',
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
         '-c:a', 'aac', '-b:a', '128k',
