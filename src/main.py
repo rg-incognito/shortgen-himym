@@ -138,6 +138,8 @@ def main():
                 'pinned_comment': '',
             }
             print("      YT metadata fallback used (Gemini unavailable)")
+        if story.get('music_credit'):
+            yt_meta['description'] += f"\n\n🎵 Music: {story['music_credit']}"
         yt_video_id = None
         from youtube_client import upload_scheduled, add_to_playlist, set_thumbnail
         publish_at = tracker.get_next_publish_slot()

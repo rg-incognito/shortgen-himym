@@ -87,7 +87,8 @@ def create_story_short(video_path, story, output_dir, episode_name,
             os.rename(merged_path, captioned_path)
 
         out_path = os.path.join(output_dir, f"{episode_name}_{title}_s{score}.mp4")
-        mix_background_music(captioned_path, out_path)
+        story['music_credit'] = mix_background_music(captioned_path, out_path,
+                                                     mood=story.get('music_mood') or 'upbeat')
         os.unlink(captioned_path)
 
         return out_path

@@ -80,6 +80,7 @@ Return ONLY a valid JSON object — no markdown, no explanation:
   "series_tag": "legendary_moments",
   "hook_text": "THE SPEECH THAT CHANGED EVERYTHING",
   "hook_emoji": "😳",
+  "music_mood": "epic",
   "clips": [
     {{
       "start_seconds": 87.0,
@@ -101,7 +102,15 @@ Rules:
 - storyline_title: snake_case, max 40 chars
 - series_tag: pick exactly one — barneys_schemes | teds_disasters | marshall_and_lily | robins_quirks | slap_bet | legendary_moments | gang_at_maclarens
 - hook_text: 3-8 words, ALL CAPS, describing the clip's premise/moment WITHOUT giving away the punchline (e.g. "HE TRIED TO RIZZ UP A COP", "BARNEY'S GYM INVESTMENT SCHEME", "THE DECAF COFFEE DISASTER"). This is burned onto the video as a persistent white banner across the top of the ENTIRE video (not just the opening) — it can be a touch more descriptive than a quick flash-hook since it stays visible throughout. Still separate from and shorter than the YouTube title.
-- hook_emoji: 1-2 emoji matching the COMEDIC reaction to this specific moment (e.g. 😳 😂 💀 🤦 😬 😏 👀 🍆🙈 — pick whatever actually fits the clip's humor, don't default to the same one or two every time), or "" if none fit naturally — never force one"""
+- hook_emoji: 1-2 emoji matching the COMEDIC reaction to this specific moment (e.g. 😳 😂 💀 🤦 😬 😏 👀 🍆🙈 — pick whatever actually fits the clip's humor, don't default to the same one or two every time), or "" if none fit naturally — never force one
+- music_mood: the background music bed that fits how this moment FEELS, played quietly under the dialogue. Pick exactly one:
+  upbeat — light, playful comedy; a fun bit, banter, a silly gag
+  awkward — cringe, sneaky or scheming energy; a plan in motion, a lie being covered, an uncomfortable silence
+  romantic — a sweet or tender couple moment, flirting that lands, a heartfelt gesture
+  emotional — sad, bittersweet or sincere; a breakup, a goodbye, a serious heart-to-heart
+  epic — a big buildup, a dramatic reveal, a "legendary" speech or over-the-top moment
+  none — the joke depends on timing, silence or rapid dialogue that music would step on
+  Match the mood of the scene, not the show overall — a sad scene gets "emotional" even though HIMYM is a comedy"""
 
 
 _YT_PROMPT = """You are a YouTube content strategist for a How I Met Your Mother clips channel called "Legen-dary Clips".

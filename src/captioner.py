@@ -13,6 +13,7 @@ Also renders the persistent top hook banner (render_hook_png) and mixes in a
 background music bed (mix_background_music).
 """
 import glob
+import json
 import os
 import random
 import shutil
@@ -74,8 +75,18 @@ _VIDEO_SCALE_W  = int(_OUT_W * _VIDEO_AVAIL_H / _OUT_H)
 _VIDEO_PAD_X    = (_OUT_W - _VIDEO_SCALE_W) // 2
 
 # --- Background music bed ---
-_MUSIC_DIR    = os.path.join(os.path.dirname(__file__), '..', 'music')
-_MUSIC_VOLUME = 0.13   # low bed under dialogue — tune after listening to real output
+# Tracks live in music/<mood>/*.mp3; the analyzer picks the mood per short.
+# Volume is the level in gaps between lines — the bed ducks further under speech.
+_MUSIC_DIR     = os.path.join(os.path.dirname(__file__), '..', 'music')
+_MUSIC_CREDITS = os.path.join(_MUSIC_DIR, 'credits.json')
+MUSIC_MOODS = {
+    'upbeat':    0.15,
+    'awkward':   0.15,
+    'romantic':  0.13,
+    'emotional': 0.12,
+    'epic':      0.14,
+}
+_DEFAULT_MOOD = 'upbeat'
 
 
 def _find_font(candidates):
@@ -303,23 +314,48 @@ def _render_emoji_glyph(emoji_str, font_path, target_px):
     return None
 
 
-def _pick_music_track():
-    tracks = glob.glob(os.path.join(_MUSIC_DIR, '*.mp3'))
+def _pick_music_track(mood):
+    tracks = glob.glob(os.path.join(_MUSIC_DIR, mood, '*.mp3'))
+    if not tracks and mood != _DEFAULT_MOOD:
+        print(f"  Background music: no tracks for mood '{mood}', falling back to '{_DEFAULT_MOOD}'")
+        tracks = glob.glob(os.path.join(_MUSIC_DIR, _DEFAULT_MOOD, '*.mp3'))
     return random.choice(tracks) if tracks else None
 
 
-def mix_background_music(video_path, output_path, volume=_MUSIC_VOLUME):
+def _music_credit(track):
+    try:
+        with open(_MUSIC_CREDITS, encoding='utf-8') as f:
+            return json.load(f).get(os.path.basename(track))
+    except (OSError, ValueError):
+        return None
+
+
+def mix_background_music(video_path, output_path, mood=_DEFAULT_MOOD):
     """
-    Mix a random royalty-free track from music/ under the video's existing
-    dialogue audio as a low background bed (video re-muxed with -c:v copy,
-    so no re-encode/quality loss). Falls back to a plain copy if no tracks
-    are found or the mix fails, so this can never break the upload.
+    Mix a random track from music/<mood>/ under the video's existing dialogue
+    audio (video re-muxed with -c:v copy, so no re-encode/quality loss). The
+    music is sidechain-ducked so it dips while someone is talking and comes
+    back up in the gaps. mood='none' skips music entirely.
+
+    Returns the track's attribution line from music/credits.json (or None) so
+    the caller can put it in the video description. Falls back to a plain
+    copy if no tracks are found or the mix fails, so this can never break
+    the upload.
     """
-    track = _pick_music_track()
+    if mood == 'none':
+        print("  Background music: none (analyzer chose no music for this clip)")
+        shutil.copy2(video_path, output_path)
+        return None
+    if mood not in MUSIC_MOODS:
+        print(f"  Background music: unknown mood '{mood}', using '{_DEFAULT_MOOD}'")
+        mood = _DEFAULT_MOOD
+    volume = MUSIC_MOODS[mood]
+
+    track = _pick_music_track(mood)
     if not track:
         print("  Background music: no tracks found in music/ — skipping")
         shutil.copy2(video_path, output_path)
-        return
+        return None
 
     probe = subprocess.run(
         ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
@@ -336,8 +372,10 @@ def mix_background_music(video_path, output_path, volume=_MUSIC_VOLUME):
 
     if has_audio:
         filter_complex = (
+            f"[0:a]asplit=2[dialogue][sc];"
             f"[1:a]volume={volume},atrim=0:{duration}[music];"
-            f"[0:a][music]amix=inputs=2:duration=first:dropout_transition=0[aout]"
+            f"[music][sc]sidechaincompress=threshold=0.03:ratio=6:attack=30:release=500[ducked];"
+            f"[dialogue][ducked]amix=inputs=2:duration=first:dropout_transition=0[aout]"
         )
     else:
         filter_complex = f"[1:a]volume={volume},atrim=0:{duration}[aout]"
@@ -354,10 +392,12 @@ def mix_background_music(video_path, output_path, volume=_MUSIC_VOLUME):
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True)
-        print(f"  Background music: {os.path.basename(track)}")
+        print(f"  Background music [{mood}]: {os.path.basename(track)}")
+        return _music_credit(track)
     except subprocess.CalledProcessError as e:
         print(f"  Background music mix failed ({e}), using clean audio")
         shutil.copy2(video_path, output_path)
+        return None
 
 
 def burn_captions(video_path, output_path, all_words, story_clips,
