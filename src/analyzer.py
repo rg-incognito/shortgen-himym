@@ -30,19 +30,23 @@ def _gemini_post(payload, api_key, timeout=120):
 
 _PROMPT = """You are a viral short-form video editor working with How I Met Your Mother (US sitcom, 2005-2014).
 
-Your task: find the BEST short-form moment in this episode for a vertical reel of 25-58 seconds, and choose the FORMAT that fits it best.
+Your task: find the BEST short-form moment in this episode for a vertical reel of 15-58 seconds, and choose the FORMAT that fits it best.
 
-COMPLETE STORY OVER SINGLE BEAT: the channel's only breakout short (315k views vs a ~15k median) was a
-60-second mini-story with a clear setup, an escalation and a twist payoff; 10-20 second single-quip
-clips almost never break past ~30k. A viewer who understands what's at stake keeps watching to the
-payoff. So prefer a moment with a beginning (what someone wants or is planning), a middle (it
-escalates or goes sideways) and an end (the punchline, twist or reaction) over one isolated line,
-even if the isolated line is funnier on its own.
+WATCH-THROUGH IS WHAT MATTERS, NOT LENGTH: on this channel, shorts viewers watch all the way
+through (or replay) get ~27k median views; ones where viewers drop off early get ~15k. Length
+alone doesn't help — 30-45s clips actually average slightly fewer views, because padded setup
+loses people. The one breakout (315k) was a 60-second mini-story that still held 69% of
+viewers to the final second, because it set up a clear stake (Barney about to hit a milestone)
+and paid it off with a twist. So:
+- If the episode has a mini-story like that — a clear want/plan, it escalates or goes sideways,
+  then a twist or punchline — take it at whatever length it needs, up to 58 seconds.
+- Otherwise a tight, self-explanatory 15-25 second scene is better than stretching a weak one.
+- Every extra second must earn its place; cut anything a viewer would swipe away during.
 
 FORMAT "standalone_scene" — use when ONE scene already works as a complete moment on its own:
 - A single continuous scene: an iconic monologue, a quotable line ("Suit up!", "Legendary!", a Barney speech), a tight back-and-forth with a clean punchline, or one big reaction beat
 - 1-3 clips from that ONE scene, back-to-back (small dead-air/cutaway trims between them are fine)
-- Total duration: 25-58 seconds — include the setup that makes the punchline land, not just the punchline; never pad with dead air just to extend length
+- Total duration: 15-58 seconds — include the setup that makes the punchline land, but nothing more; never pad
 - Must be fully funny/emotional WITHOUT any other clips for context
 - First clip starts at the natural beginning of the moment — mid-sentence is fine if that's how it plays, but don't force an artificial "hook" cut from elsewhere
 
@@ -100,7 +104,7 @@ Return ONLY a valid JSON object — no markdown, no explanation:
 }}
 
 Rules:
-- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 25-58 seconds (must include the setup, not just the punchline; never pad), clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
+- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 15-58 seconds (include the setup the punchline needs, nothing more; never pad), clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
 - If format = "story_recap": 4-7 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 40-58 seconds (prefer longer when there are enough genuine beats, never pad), clips other than the hook in rough CHRONOLOGICAL ORDER
 - Clips must NOT overlap each other or the previously-used segments
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
