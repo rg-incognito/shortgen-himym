@@ -38,7 +38,10 @@ def _build_svc():
         raise FileNotFoundError("yt_token.json not found — set YT_TOKEN_JSON secret")
     raw = open(_TOKEN_FILE, encoding='utf-8-sig').read()
     info = json.loads(raw)
-    creds = Credentials.from_authorized_user_info(info, _SCOPES)
+    # Refresh with whatever scopes the token was granted (youtube, plus force-ssl for
+    # comments and yt-analytics once re-authorised) — requesting a scope the token
+    # lacks fails the refresh outright.
+    creds = Credentials.from_authorized_user_info(info, info.get('scopes') or _SCOPES)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
         with open(_TOKEN_FILE, 'w') as f:
@@ -129,3 +132,19 @@ def upload_scheduled(video_path, title, description, tags_str, publish_at_iso):
             print(f"    YT upload {int(status.progress() * 100)}%")
 
     return response['id']
+
+
+def post_comment(video_id, text):
+    """Post a top-level comment on the channel's own video as the channel.
+
+    Needs the youtube.force-ssl scope. The API can't pin comments — pin by hand in
+    Studio if wanted.
+    """
+    svc = _build_svc()
+    svc.commentThreads().insert(
+        part='snippet',
+        body={'snippet': {
+            'videoId': video_id,
+            'topLevelComment': {'snippet': {'textOriginal': text}},
+        }},
+    ).execute()

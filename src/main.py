@@ -18,6 +18,25 @@ VIDEOS_FOLDER_ID  = os.environ.get('VIDEOS_FOLDER_ID',  '1bIFaNpfBy1Bp9R14T22EV-
 SHORTS_FOLDER_ID  = os.environ.get('SHORTS_FOLDER_ID',  '1kzFXWZQu8QQVtZKeAVvSgHcLaRFfK6tg')
 ARCHIVE_FOLDER_ID = os.environ.get('ARCHIVE_FOLDER_ID', '1nHZCaWO_KvkV52TekkF8ecC5JtIlXqJj')
 MAX_RUNS = 3
+MAX_COMMENTS_PER_RUN = 4
+
+
+def _post_due_comments(tracker):
+    """Post the Gemini-written comment prompt on shorts that went public since the last run.
+
+    Shorts are uploaded private-scheduled, so the comment can't go up at upload time.
+    Comments are the weakest signal on the channel (~1 per 10k views); a specific
+    question under the video gives viewers something to answer. Never blocks the run.
+    """
+    try:
+        from youtube_client import post_comment
+        due = tracker.get_due_comments()[:MAX_COMMENTS_PER_RUN]
+        for row_num, video_id, text in due:
+            post_comment(video_id, text)
+            tracker.mark_commented(row_num)
+            print(f"      Comment posted on {video_id}: {text}")
+    except Exception as e:
+        print(f"      Comment posting skipped: {e}")
 
 
 def main():
@@ -31,6 +50,7 @@ def main():
     episode_name  = os.environ.get('EPISODE_NAME', '').strip()
 
     tracker = SheetTracker(service_account_info, spreadsheet_id)
+    _post_due_comments(tracker)
 
     diarization_pipeline = None
     if hf_token:

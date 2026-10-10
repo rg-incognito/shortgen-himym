@@ -156,6 +156,41 @@ class SheetTracker:
                 ).execute(num_retries=5)
                 return
 
+    def get_due_comments(self, max_age_hours=48):
+        """Shorts that have gone public but haven't had their comment prompt posted yet.
+
+        Returns [(row_num, video_id, comment_text)]. Only looks back max_age_hours so
+        the first run after this was added doesn't comment on the whole back catalogue
+        (commentThreads.insert costs 50 quota units each).
+        """
+        self._ensure_posting_sheet()
+        res = self._svc.spreadsheets().values().get(
+            spreadsheetId=self._sid,
+            range=f'{_POSTING_SHEET}!A:L',
+        ).execute(num_retries=5)
+        now = datetime.datetime.utcnow()
+        due = []
+        for i, row in enumerate(res.get('values', [])[1:], start=2):
+            row = row + [''] * (12 - len(row))
+            comment, status, scheduled_at, yt_url = row[7].strip(), row[8], row[9], row[10]
+            if status != 'Scheduled' or not comment or 'youtu.be/' not in yt_url:
+                continue
+            try:
+                t = datetime.datetime.strptime(scheduled_at, '%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                continue
+            if t <= now <= t + datetime.timedelta(hours=max_age_hours):
+                due.append((i, yt_url.rsplit('/', 1)[-1], comment))
+        return due
+
+    def mark_commented(self, row_num):
+        self._svc.spreadsheets().values().update(
+            spreadsheetId=self._sid,
+            range=f'{_POSTING_SHEET}!I{row_num}',
+            valueInputOption='RAW',
+            body={'values': [['Commented']]},
+        ).execute(num_retries=5)
+
     def log_clips(self, episode_name, run_number, clips):
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
         rows = [

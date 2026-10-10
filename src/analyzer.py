@@ -30,12 +30,19 @@ def _gemini_post(payload, api_key, timeout=120):
 
 _PROMPT = """You are a viral short-form video editor working with How I Met Your Mother (US sitcom, 2005-2014).
 
-Your task: find the BEST short-form moment in this episode for a vertical reel under 35 seconds, and choose the FORMAT that fits it best.
+Your task: find the BEST short-form moment in this episode for a vertical reel of 25-58 seconds, and choose the FORMAT that fits it best.
+
+COMPLETE STORY OVER SINGLE BEAT: the channel's only breakout short (315k views vs a ~15k median) was a
+60-second mini-story with a clear setup, an escalation and a twist payoff; 10-20 second single-quip
+clips almost never break past ~30k. A viewer who understands what's at stake keeps watching to the
+payoff. So prefer a moment with a beginning (what someone wants or is planning), a middle (it
+escalates or goes sideways) and an end (the punchline, twist or reaction) over one isolated line,
+even if the isolated line is funnier on its own.
 
 FORMAT "standalone_scene" — use when ONE scene already works as a complete moment on its own:
 - A single continuous scene: an iconic monologue, a quotable line ("Suit up!", "Legendary!", a Barney speech), a tight back-and-forth with a clean punchline, or one big reaction beat
 - 1-3 clips from that ONE scene, back-to-back (small dead-air/cutaway trims between them are fine)
-- Total duration: 10-45 seconds — prefer the longer end when the scene has enough genuine content to sustain it, but never pad with dead air just to extend length
+- Total duration: 25-58 seconds — include the setup that makes the punchline land, not just the punchline; never pad with dead air just to extend length
 - Must be fully funny/emotional WITHOUT any other clips for context
 - First clip starts at the natural beginning of the moment — mid-sentence is fine if that's how it plays, but don't force an artificial "hook" cut from elsewhere
 
@@ -43,7 +50,7 @@ FORMAT "story_recap" — use when the best moment NEEDS setup from earlier in th
 1. HOOK (first clip, 3-5 sec) — the single most shocking/funny/relatable moment from the ENTIRE storyline. Does NOT need to be the chronological start. CRITICAL: the very first frame must start MID-ACTION — the character must already be mid-sentence, mid-reaction, or mid-punchline. NEVER open on someone walking into MacLaren's, sitting down, looking around, or any establishing shot. Start on Barney's face already in frame mid-reveal, Marshall's reaction already happening, Ted already mid-disaster.
 2. CONTEXT clips (2-5 clips, 3-6 sec each) — the minimum lines needed to understand why the hook moment is funny. Only the single KEY line or reaction per beat. Cut everything else.
 3. PAYOFF (last clip, 3-5 sec) — the final punchline, resolution, or biggest laugh.
-TOTAL target: 35-55 seconds across all clips combined — prefer the longer end when the storyline has enough genuine beats, but never pad with dead air or a redundant context clip just to extend length.
+TOTAL target: 40-58 seconds across all clips combined — prefer the longer end when the storyline has enough genuine beats, but never pad with dead air or a redundant context clip just to extend length.
 
 Default to "standalone_scene" when a single scene is strong enough on its own — it feels like a real clip rather than an edit and often performs better. Use "story_recap" only when no single scene can stand alone and you genuinely need to connect a setup to a later payoff.
 
@@ -93,8 +100,8 @@ Return ONLY a valid JSON object — no markdown, no explanation:
 }}
 
 Rules:
-- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 10-45 seconds (prefer longer when the scene supports it, never pad), clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
-- If format = "story_recap": 4-7 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 35-55 seconds (prefer longer when there are enough genuine beats, never pad), clips other than the hook in rough CHRONOLOGICAL ORDER
+- If format = "standalone_scene": 1-3 clips from ONE scene, label each "scene", total 25-58 seconds (must include the setup, not just the punchline; never pad), clips in chronological order, may skip small dead-air/cutaway gaps but must otherwise read as one continuous moment
+- If format = "story_recap": 4-7 clips, FIRST clip labeled "hook" (most viral moment, any timestamp, first frame mid-action, never an establishing shot), LAST clip labeled "payoff" (punchline/resolution), middle clips labeled "context" (3-6 sec each, just the KEY line or reaction), total 40-58 seconds (prefer longer when there are enough genuine beats, never pad), clips other than the hook in rough CHRONOLOGICAL ORDER
 - Clips must NOT overlap each other or the previously-used segments
 - CRITICAL: Every clip must end at a natural sentence or speech pause — NEVER cut mid-word or mid-sentence. Extend end_seconds by 1-2s if needed to catch the full line.
 - Pick moments with a clear spoken punchline or strong visual reaction
@@ -149,10 +156,11 @@ Rules:
 
 # Appended to whatever HIMYM-specific tags Gemini generates, so every video also
 # surfaces in broader "sitcom clips" search/suggested traffic, not just HIMYM search.
+# Other shows' names (Friends, The Office, ...) were dropped: they misdescribe the
+# video, which YouTube treats as misleading metadata.
 # YouTube caps combined tags at 500 chars — _append_cross_show_tags truncates to fit.
 _CROSS_SHOW_TAGS = [
-    "Friends", "The Office", "Brooklyn Nine-Nine", "Parks and Recreation",
-    "Modern Family", "sitcom clips", "TV show moments", "2000s sitcoms",
+    "sitcom clips", "TV show moments", "2000s sitcoms",
     "classic sitcoms", "relatable humor",
 ]
 _MAX_TAGS_CHARS = 480  # leave a little headroom under YouTube's 500-char cap
