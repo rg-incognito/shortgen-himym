@@ -103,18 +103,36 @@ class SheetTracker:
             body={'values': [row]},
         ).execute(num_retries=5)
 
+    def _booked_slots(self):
+        """scheduled_at values already written to PostingTracker (column J)."""
+        self._ensure_posting_sheet()
+        res = self._svc.spreadsheets().values().get(
+            spreadsheetId=self._sid,
+            range=f'{_POSTING_SHEET}!J:J',
+        ).execute(num_retries=5)
+        return {row[0].strip() for row in res.get('values', []) if row and row[0].strip()}
+
     def get_next_publish_slot(self):
-        """Return the next fixed publish slot (23:00 or 01:00 UTC) that is at least 5 minutes away."""
+        """Return the next free fixed publish slot (23:00 or 01:00 UTC) at least 5 minutes away.
+
+        Slots already booked by an earlier run are skipped. The delayed 01:00 trigger
+        usually finishes after 01:00 has passed, so without this both daily runs
+        snapped onto the same 23:00 slot and the two shorts split each other's reach.
+        """
         now = datetime.datetime.utcnow()
-        candidates = []
-        for day_offset in range(2):
+        booked = self._booked_slots()
+        for day_offset in range(14):
+            candidates = []
             for hour, minute in _PUBLISH_SLOTS_UTC:
                 t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
                 t += datetime.timedelta(days=day_offset)
                 if t > now + datetime.timedelta(minutes=5):
                     candidates.append(t)
-        slot = min(candidates)
-        return slot.strftime('%Y-%m-%dT%H:%M:%SZ')
+            for t in sorted(candidates):
+                iso = t.strftime('%Y-%m-%dT%H:%M:%SZ')
+                if iso not in booked:
+                    return iso
+        raise RuntimeError('No free publish slot in the next 14 days')
 
     def update_yt_url(self, episode_name, run_number, storyline_title, yt_video_id, scheduled_at):
         """Write YouTube video ID and scheduled_at back into the PostingTracker row."""
