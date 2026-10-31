@@ -33,6 +33,26 @@ def _soften(text):
     return text
 
 
+# YouTube rejects the whole upload (400 invalidDescription / invalidTitle) if the
+# text has '<' or '>', control characters, or a description over 5000 bytes.
+# Gemini occasionally writes "<3" or "->", so swap in lookalikes instead.
+_CONTROL_CHARS = re.compile(r'[\x00-\x08\x0b-\x1f\x7f]')
+_DESCRIPTION_MAX_BYTES = 5000
+
+
+def _youtube_safe(text):
+    text = text.replace('<', '‹').replace('>', '›')
+    return _CONTROL_CHARS.sub('', text.replace('\r\n', '\n'))
+
+
+def _safe_description(text):
+    text = _youtube_safe(_soften(text))
+    data = text.encode('utf-8')
+    if len(data) > _DESCRIPTION_MAX_BYTES:
+        text = data[:_DESCRIPTION_MAX_BYTES].decode('utf-8', 'ignore')
+    return text
+
+
 def _build_svc():
     if not os.path.exists(_TOKEN_FILE):
         raise FileNotFoundError("yt_token.json not found — set YT_TOKEN_JSON secret")
@@ -101,12 +121,12 @@ def upload_scheduled(video_path, title, description, tags_str, publish_at_iso):
     Returns the YouTube video ID.
     """
     svc  = _build_svc()
-    tags = [_soften(t.strip()) for t in tags_str.split(',') if t.strip()]
+    tags = [_youtube_safe(_soften(t.strip())) for t in tags_str.split(',') if t.strip()]
 
     body = {
         'snippet': {
-            'title':           _soften(title)[:100],
-            'description':     _soften(description),
+            'title':           _youtube_safe(_soften(title))[:100],
+            'description':     _safe_description(description),
             'tags':            tags,
             'categoryId':      '24',   # Entertainment
             'defaultLanguage': 'en',
