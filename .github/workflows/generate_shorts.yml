@@ -28,10 +28,6 @@ on:
 #   HF_TOKEN                     — HuggingFace token (free) for pyannote diarization
 #   YT_TOKEN_JSON                — run setup_yt_oauth.py locally, select HIMYM channel
 # NOTE: refresh token auto-refreshes — no re-auth needed as long as workflow runs regularly
-#
-# Failover secrets (optional — auto-switches account when minutes run low):
-#   FAILOVER_SELF_TOKEN  — classic PAT for THIS account (rg-incognito) with scopes: repo, user
-#   FAILOVER_NEXT_TOKEN  — classic PAT for NEXT account (rg-incognito1) with scopes: repo, workflow
 
 jobs:
   generate-shorts:
@@ -42,47 +38,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Failover — switch to standby account if minutes are low
-        if: github.event_name == 'schedule'
-        continue-on-error: true
-        env:
-          SELF_TOKEN: ${{ secrets.FAILOVER_SELF_TOKEN }}
-          NEXT_TOKEN: ${{ secrets.FAILOVER_NEXT_TOKEN }}
-        run: |
-          [ -z "$SELF_TOKEN" ] && echo "FAILOVER_SELF_TOKEN not set — skipping" && exit 0
-
-          MONTH=$(date -u +%Y-%m)
-          USAGE_JSON=$(curl -sf --retry 2 \
-            -H "Authorization: Bearer $SELF_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/users/rg-incognito/settings/billing/usage") || true
-
-          USED=$(echo "$USAGE_JSON" | python3 -c "
-          import json,sys
-          d=json.load(sys.stdin)
-          m='$MONTH'
-          print(int(sum(float(i.get('quantity',0)) for i in d.get('usageItems',[])
-                        if i.get('product')=='actions' and i.get('unitType')=='Minutes'
-                        and str(i.get('date','')).startswith(m))))
-          " 2>/dev/null) || USED=0
-
-          LEFT=$((2000 - ${USED:-0}))
-          echo "Minutes this month: used=${USED}  left=${LEFT} / 2000"
-
-          if [ "${LEFT}" -lt 350 ]; then
-            [ -z "$NEXT_TOKEN" ] && echo "FAILOVER_NEXT_TOKEN not set — cannot switch" && exit 0
-            echo "Low on minutes — switching to rg-incognito1"
-            curl -sf -X PUT \
-              -H "Authorization: Bearer $NEXT_TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/rg-incognito1/shortgen-himym/actions/workflows/generate_shorts.yml/enable"
-            curl -sf -X PUT \
-              -H "Authorization: Bearer $SELF_TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/rg-incognito/shortgen-himym/actions/workflows/generate_shorts.yml/disable"
-            echo "Failover done — rg-incognito1 is now active, this workflow disabled"
-          fi
-
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -90,7 +45,7 @@ jobs:
 
       - name: Install ffmpeg
         run: |
-          curl -fsSL --retry 3 --retry-delay 5 https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz | tar -xJ
+          curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz | tar -xJ
           sudo mv ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /usr/local/bin/
           sudo mv ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/
           rm -rf ffmpeg-master-latest-linux64-gpl*
