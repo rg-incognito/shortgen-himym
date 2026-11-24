@@ -80,7 +80,8 @@ class SheetTracker:
                 body={'values': [_POSTING_HEADERS]},
             ).execute(num_retries=5)
 
-    def log_posting_metadata(self, episode_name, run_number, story, yt_meta):
+    def log_posting_metadata(self, episode_name, run_number, story, yt_meta,
+                              scheduled_at='', yt_video_id=''):
         self._ensure_posting_sheet()
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
         row = [
@@ -92,9 +93,9 @@ class SheetTracker:
             yt_meta.get('description', ''),
             yt_meta.get('tags', ''),
             yt_meta.get('pinned_comment', ''),
-            'Pending',
-            '',   # upload_date — fill in manually after posting
-            '',   # yt_url     — fill in manually after posting
+            'Scheduled' if scheduled_at else 'Pending',
+            scheduled_at,
+            f'https://youtu.be/{yt_video_id}' if yt_video_id else '',
             now,
         ]
         self._svc.spreadsheets().values().append(

@@ -172,8 +172,6 @@ def main():
             publish_at,
         )
         print(f"      https://youtu.be/{yt_video_id}")
-        tracker.update_yt_url(episode_name, current_run,
-                              story['storyline_title'], yt_video_id, publish_at)
 
         if thumbnail_path:
             try:
@@ -212,7 +210,8 @@ def main():
         ]
         tracker.log_clips(episode_name, current_run, clips_for_log)
         if yt_meta:
-            tracker.log_posting_metadata(episode_name, current_run, story, yt_meta)
+            tracker.log_posting_metadata(episode_name, current_run, story, yt_meta,
+                                          scheduled_at=publish_at, yt_video_id=yt_video_id)
         print(f"      Logged run {current_run} to tracker sheet")
 
         if current_run >= MAX_RUNS:
