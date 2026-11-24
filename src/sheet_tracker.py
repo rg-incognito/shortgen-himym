@@ -13,13 +13,14 @@ _POSTING_HEADERS  = [
     'yt_title', 'description', 'tags', 'pinned_comment',
     'status', 'scheduled_at', 'yt_url', 'created_at',
 ]
-# Fixed publish slots in UTC: 23:00 and 01:00 (7 PM / 9 PM US Eastern —
+# Fixed publish slots in UTC: 00:00 and 02:00 (7 PM / 9 PM US Eastern EST/UTC-5 —
 # North America evening prime time). We snap to the nearest upcoming slot
 # instead of publishing run-finish+buffer, because GitHub Actions' schedule
-# queue delays the 01:00 UTC trigger by ~3-4 hours on a regular basis (the
-# 23:00 trigger only slips ~1h) — left unsnapped, that run's video was
-# landing around 12:30 AM ET instead of 9 PM ET.
-_PUBLISH_SLOTS_UTC = [(23, 0), (1, 0)]
+# queue delays the 02:00 UTC trigger by ~2-3 hours on a regular basis (the
+# 00:00 trigger slips ~7-11h) — left unsnapped, that run's video was
+# landing around midnight ET instead of 9 PM ET.
+# NOTE: revert to [(23, 0), (1, 0)] when US clocks spring forward to EDT (Mar 2027).
+_PUBLISH_SLOTS_UTC = [(0, 0), (2, 0)]
 
 
 class SheetTracker:
@@ -113,11 +114,11 @@ class SheetTracker:
         return {row[0].strip() for row in res.get('values', []) if row and row[0].strip()}
 
     def get_next_publish_slot(self):
-        """Return the next free fixed publish slot (23:00 or 01:00 UTC) at least 5 minutes away.
+        """Return the next free fixed publish slot (00:00 or 02:00 UTC) at least 5 minutes away.
 
-        Slots already booked by an earlier run are skipped. The delayed 01:00 trigger
-        usually finishes after 01:00 has passed, so without this both daily runs
-        snapped onto the same 23:00 slot and the two shorts split each other's reach.
+        Slots already booked by an earlier run are skipped. The delayed 02:00 trigger
+        usually finishes after 02:00 has passed, so without this both daily runs
+        snapped onto the same 00:00 slot and the two shorts split each other's reach.
         """
         now = datetime.datetime.utcnow()
         booked = self._booked_slots()
